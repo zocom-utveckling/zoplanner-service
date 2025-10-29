@@ -6,10 +6,10 @@ namespace zoplannerservice.Users.Controllers
     [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        [HttpGet]
-        public IActionResult Get()
+        [HttpGet("test")]
+        public IActionResult TestEndPoints()
         {
-            return Ok(new { message = "UserController works!" });
+            return Ok(new { message = "UserController test endpoints funkar!" });
         }
     }
 }
