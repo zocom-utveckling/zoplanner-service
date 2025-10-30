@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("zoplannerservice")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2fcbd41a738245ea423fad4e6c66c415bb17c873")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7c427bcdcf2d7a2b55990a6b71694ecfd040afbb")]
 [assembly: System.Reflection.AssemblyProductAttribute("zoplannerservice")]
 [assembly: System.Reflection.AssemblyTitleAttribute("zoplannerservice")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
