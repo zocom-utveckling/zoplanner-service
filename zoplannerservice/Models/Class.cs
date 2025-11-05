@@ -4,7 +4,7 @@ namespace zoplannerservice.Models
     {
         public long Id { get; set; }
         public string Name { get; set; } = string.Empty;
-        public long CustomerId { get; set; }
+        public long? CustomerId { get; set; }  // Nullable - может быть null
         
     }
 }
