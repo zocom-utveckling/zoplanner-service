@@ -13,8 +13,7 @@
 ```
 
 ### 2. Start .NET Application from the directory zoplanner-service\zoplannerservice
-C:\Users\buale\Documents\GitHub\zoplanner-service> cd zoplannerservice
-PS C:\Users\buale\Documents\GitHub\zoplanner-service\zoplannerservice> dotnet run
+
 ```powershell
 dotnet run
 ```
