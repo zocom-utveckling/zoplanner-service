@@ -1,67 +1,28 @@
 using zoplannerservice.Models;
 
-namespace zoplannerservice.Services
+namespace zoplannerservice.Services;
+
+/// <summary>
+/// User service - handles user business logic
+/// Only GET by ID and DELETE are implemented
+/// </summary>
+public class UserService : BaseService<User>
 {
-    public class UserService
+    protected override string EntityName => "User";
+    protected override string ApiEndpoint => "users";
+
+    public UserService(ISpringApiClient springClient, ILogger<UserService> logger)
+        : base(springClient, logger)
     {
-        // list to store users (Mock)
-        private List<User> users = new List<User>
-        {
-            new User { Id = 1, Username = "chris", Password = "pass123", Role = "Admin", City = "Oslo", Name = "Chris Hemsworth" },
-            new User { Id = 2, Username = "Henry", Password = "pass456", Role = "Consultant", City = "Michigan", Name = "Henry Cavill" }
-        };
+    }
 
-        // Get all users
-        public List<User> GetAllUsers()
-        {
-            return users;
-        }
-
-        // Get user by id
-        public User GetUserById(long id)
-        {
-            foreach (var user in users)
-            {
-                if (user.Id == id)
-                {
-                    return user;
-                }
-            }
-            return null;
-        }
-
-        // Create new user
-        public User CreateUser(User user)
-        {
-            users.Add(user);
-            return user;
-        }
-
-        // Update user
-        public User UpdateUser(long id, User user)
-        {
-            for (int i = 0; i < users.Count; i++)
-            {
-                if (users[i].Id == id)
-                {
-                    users[i] = user;
-                    return user;
-                }
-            }
-            return null;
-        }
-
-        // Delete user
-        public void DeleteUser(long id)
-        {
-            for (int i = 0; i < users.Count; i++)
-            {
-                if (users[i].Id == id)
-                {
-                    users.RemoveAt(i);
-                    break;
-                }
-            }
-        }
+    /// <summary>
+    /// Apply user-specific business logic
+    /// Add transformations when business requirements are defined
+    /// </summary>
+    protected override User ApplyBusinessLogic(User user)
+    {
+        // Add user-specific logic here when needed
+        return user;
     }
 }

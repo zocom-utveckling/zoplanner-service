@@ -6,29 +6,27 @@ using System.ComponentModel.DataAnnotations;
 namespace zoplannerservice.Controllers;
 
 /// <summary>
-/// Customer controller - handles HTTP requests for customers
+/// User controller - handles HTTP requests for users
 /// Only GET by ID and DELETE operations are implemented
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class CustomerController : ControllerBase
+public class UserController : ControllerBase
 {
-    private readonly IBaseService<Customer> _customerService;
-    private readonly ILogger<CustomerController> _logger;
+    private readonly IBaseService<User> _userService;
+    private readonly ILogger<UserController> _logger;
 
-    public CustomerController(IBaseService<Customer> customerService, ILogger<CustomerController> logger)
+    public UserController(IBaseService<User> userService, ILogger<UserController> logger)
     {
-        _customerService = customerService;
+        _userService = userService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get customer by ID
+    /// Get user by ID
     /// </summary>
-    /// <param name="id">Customer ID</param>
-    /// <returns>Customer object or 404 if not found</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Customer), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(User), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -36,39 +34,37 @@ public class CustomerController : ControllerBase
     {
         try
         {
-            var customer = await _customerService.GetByIdAsync(id, ct);
+            var user = await _userService.GetByIdAsync(id, ct);
             
-            if (customer == null)
+            if (user == null)
             {
-                return NotFound(new { message = $"Customer with ID {id} not found in database" });
+                return NotFound(new { message = $"User with ID {id} not found in database" });
             }
 
-            return Ok(customer);
+            return Ok(user);
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Validation error for customer {Id}", id);
+            _logger.LogWarning(ex, "Validation error for user {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (TimeoutException ex)
         {
-            _logger.LogError(ex, "Timeout while fetching customer {Id}", id);
+            _logger.LogError(ex, "Timeout while fetching user {Id}", id);
             return StatusCode(StatusCodes.Status504GatewayTimeout, 
                 new { message = "Request timed out", details = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Service error for customer {Id}", id);
+            _logger.LogError(ex, "Service error for user {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, 
                 new { message = "Backend service error", details = ex.Message });
         }
     }
 
     /// <summary>
-    /// Delete customer by ID
+    /// Delete user by ID
     /// </summary>
-    /// <param name="id">Customer ID</param>
-    /// <returns>204 if deleted, 404 if not found</returns>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -78,23 +74,23 @@ public class CustomerController : ControllerBase
     {
         try
         {
-            var deleted = await _customerService.DeleteAsync(id, ct);
+            var deleted = await _userService.DeleteAsync(id, ct);
             
             if (!deleted)
             {
-                return NotFound(new { message = $"Customer with ID {id} not found in database" });
+                return NotFound(new { message = $"User with ID {id} not found in database" });
             }
 
             return NoContent();
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Validation error while deleting customer {Id}", id);
+            _logger.LogWarning(ex, "Validation error while deleting user {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Service error while deleting customer {Id}", id);
+            _logger.LogError(ex, "Service error while deleting user {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, 
                 new { message = "Backend service error", details = ex.Message });
         }

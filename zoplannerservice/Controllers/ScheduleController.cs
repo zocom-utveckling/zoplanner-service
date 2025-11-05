@@ -6,29 +6,27 @@ using System.ComponentModel.DataAnnotations;
 namespace zoplannerservice.Controllers;
 
 /// <summary>
-/// Customer controller - handles HTTP requests for customers
+/// Schedule controller - handles HTTP requests for schedules
 /// Only GET by ID and DELETE operations are implemented
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class CustomerController : ControllerBase
+public class ScheduleController : ControllerBase
 {
-    private readonly IBaseService<Customer> _customerService;
-    private readonly ILogger<CustomerController> _logger;
+    private readonly IBaseService<Schedule> _scheduleService;
+    private readonly ILogger<ScheduleController> _logger;
 
-    public CustomerController(IBaseService<Customer> customerService, ILogger<CustomerController> logger)
+    public ScheduleController(IBaseService<Schedule> scheduleService, ILogger<ScheduleController> logger)
     {
-        _customerService = customerService;
+        _scheduleService = scheduleService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get customer by ID
+    /// Get schedule by ID
     /// </summary>
-    /// <param name="id">Customer ID</param>
-    /// <returns>Customer object or 404 if not found</returns>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Customer), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Schedule), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -36,39 +34,37 @@ public class CustomerController : ControllerBase
     {
         try
         {
-            var customer = await _customerService.GetByIdAsync(id, ct);
+            var schedule = await _scheduleService.GetByIdAsync(id, ct);
             
-            if (customer == null)
+            if (schedule == null)
             {
-                return NotFound(new { message = $"Customer with ID {id} not found in database" });
+                return NotFound(new { message = $"Schedule with ID {id} not found in database" });
             }
 
-            return Ok(customer);
+            return Ok(schedule);
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Validation error for customer {Id}", id);
+            _logger.LogWarning(ex, "Validation error for schedule {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (TimeoutException ex)
         {
-            _logger.LogError(ex, "Timeout while fetching customer {Id}", id);
+            _logger.LogError(ex, "Timeout while fetching schedule {Id}", id);
             return StatusCode(StatusCodes.Status504GatewayTimeout, 
                 new { message = "Request timed out", details = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Service error for customer {Id}", id);
+            _logger.LogError(ex, "Service error for schedule {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, 
                 new { message = "Backend service error", details = ex.Message });
         }
     }
 
     /// <summary>
-    /// Delete customer by ID
+    /// Delete schedule by ID
     /// </summary>
-    /// <param name="id">Customer ID</param>
-    /// <returns>204 if deleted, 404 if not found</returns>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -78,23 +74,23 @@ public class CustomerController : ControllerBase
     {
         try
         {
-            var deleted = await _customerService.DeleteAsync(id, ct);
+            var deleted = await _scheduleService.DeleteAsync(id, ct);
             
             if (!deleted)
             {
-                return NotFound(new { message = $"Customer with ID {id} not found in database" });
+                return NotFound(new { message = $"Schedule with ID {id} not found in database" });
             }
 
             return NoContent();
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Validation error while deleting customer {Id}", id);
+            _logger.LogWarning(ex, "Validation error while deleting schedule {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Service error while deleting customer {Id}", id);
+            _logger.LogError(ex, "Service error while deleting schedule {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, 
                 new { message = "Backend service error", details = ex.Message });
         }
