@@ -7,16 +7,25 @@
 
 ## 🧪 Testing Your API
 
-### 1. Start Spring Boot
+### 1. Start Spring Boot like usually or
 ```bash
 ./mvnw spring-boot:run
 ```
 
-### 2. Start .NET Application
+### 2. Start .NET Application from the directory zoplanner-service\zoplannerservice
+C:\Users\buale\Documents\GitHub\zoplanner-service> cd zoplannerservice
+PS C:\Users\buale\Documents\GitHub\zoplanner-service\zoplannerservice> dotnet run
 ```powershell
 dotnet run
 ```
-
+If you are not in the correct directory, type
+```powershell
+cd zoplannerservice
+```
+and then
+```powershell
+dotnet run
+```
 ### 3. Open Swagger
 http://localhost:5027/swagger/index.html
 
@@ -49,9 +58,9 @@ http://localhost:5027/swagger/index.html
 ## 📋 Table of Contents
 
 1. [What Is This Project?](#-what-is-this-project)
-2. [Architecture Overview](#-architecture-overview)
+2. [Architecture Overview](#️-architecture-overview)
 3. [Step-by-Step: Connecting .NET to Spring Boot](#-step-by-step-connecting-net-to-spring-boot)
-4. [Understanding the Code Structure](#-understanding-the-code-structure)
+4. [Understanding the Code Structure](#️-understanding-the-code-structure)
 6. [Troubleshooting](#-troubleshooting)
 
 ## 📖 What Is This Project?
