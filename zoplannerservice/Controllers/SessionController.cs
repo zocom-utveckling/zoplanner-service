@@ -6,27 +6,27 @@ using System.ComponentModel.DataAnnotations;
 namespace zoplannerservice.Controllers;
 
 /// <summary>
-/// Schedule controller - handles HTTP requests for schedules
+/// Session controller - handles HTTP requests for sessions
 /// Only GET by ID and DELETE operations are implemented
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-public class ScheduleController : ControllerBase
+public class SessionController : ControllerBase
 {
-    private readonly IBaseService<Schedule> _scheduleService;
-    private readonly ILogger<ScheduleController> _logger;
+    private readonly IBaseService<Session> _sessionService;
+    private readonly ILogger<SessionController> _logger;
 
-    public ScheduleController(IBaseService<Schedule> scheduleService, ILogger<ScheduleController> logger)
+    public SessionController(IBaseService<Session> sessionService, ILogger<SessionController> logger)
     {
-        _scheduleService = scheduleService;
+        _sessionService = sessionService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get schedule by ID
+    /// Get session by ID
     /// </summary>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(Schedule), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Session), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
@@ -34,36 +34,36 @@ public class ScheduleController : ControllerBase
     {
         try
         {
-            var schedule = await _scheduleService.GetByIdAsync(id, ct);
+            var session = await _sessionService.GetByIdAsync(id, ct);
             
-            if (schedule == null)
+            if (session == null)
             {
-                return NotFound(new { message = $"Schedule with ID {id} not found in database" });
+                return NotFound(new { message = $"Session with ID {id} not found in database" });
             }
 
-            return Ok(schedule);
+            return Ok(session);
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Validation error for schedule {Id}", id);
+            _logger.LogWarning(ex, "Validation error for session {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (TimeoutException ex)
         {
-            _logger.LogError(ex, "Timeout while fetching schedule {Id}", id);
+            _logger.LogError(ex, "Timeout while fetching session {Id}", id);
             return StatusCode(StatusCodes.Status504GatewayTimeout, 
                 new { message = "Request timed out", details = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Service error for schedule {Id}", id);
+            _logger.LogError(ex, "Service error for session {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, 
                 new { message = "Backend service error", details = ex.Message });
         }
     }
 
     /// <summary>
-    /// Delete schedule by ID
+    /// Delete session by ID
     /// </summary>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -74,23 +74,23 @@ public class ScheduleController : ControllerBase
     {
         try
         {
-            var deleted = await _scheduleService.DeleteAsync(id, ct);
+            var deleted = await _sessionService.DeleteAsync(id, ct);
             
             if (!deleted)
             {
-                return NotFound(new { message = $"Schedule with ID {id} not found in database" });
+                return NotFound(new { message = $"Session with ID {id} not found in database" });
             }
 
             return NoContent();
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Validation error while deleting schedule {Id}", id);
+            _logger.LogWarning(ex, "Validation error while deleting session {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Service error while deleting schedule {Id}", id);
+            _logger.LogError(ex, "Service error while deleting session {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, 
                 new { message = "Backend service error", details = ex.Message });
         }

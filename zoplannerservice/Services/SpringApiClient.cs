@@ -51,8 +51,11 @@ public class SpringApiClient : ISpringApiClient
                     $"Spring Boot returned {(int)response.StatusCode} ({response.StatusCode}) for GET {endpoint}: {errorBody}");
             }
 
-            var content = await response.Content.ReadAsStreamAsync(ct);
-            return await JsonSerializer.DeserializeAsync<T>(content, _jsonOptions, ct);
+            // Log raw JSON for debugging
+            var rawJson = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogInformation("Raw JSON from Spring Boot: {Json}", rawJson);
+            
+            return JsonSerializer.Deserialize<T>(rawJson, _jsonOptions);
         }
         catch (HttpRequestException)
         {
