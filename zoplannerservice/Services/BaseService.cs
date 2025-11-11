@@ -131,14 +131,37 @@ public abstract class BaseService<T> : IBaseService<T> where T : class
     /// </summary>
     public virtual async Task<IEnumerable<T>> GetAllAsync(CancellationToken ct = default)
     {
-        _logger.LogInformation("GetAllAsync called for {EntityName} - STUB: Not yet implemented", EntityName);
-        
-        // TODO: Implement when business logic is defined
-        // Example implementation:
-        // var entities = await _springClient.GetAsync<List<T>>(ApiEndpoint, ct);
-        // return entities?.Select(ApplyBusinessLogic) ?? Enumerable.Empty<T>();
-        
-        throw new NotImplementedException($"GetAllAsync for {EntityName} is not yet implemented. Define business logic first.");
+        _logger.LogInformation("Fetching all {EntityName} entities", EntityName);
+
+        try
+        {
+            var entities = await _springClient.GetAsync<List<T>>(ApiEndpoint, ct);
+            if (entities == null || entities.Count == 0)
+            {
+                _logger.LogInformation("No {EntityName} entities returned from backend", EntityName);
+                return Enumerable.Empty<T>();
+            }
+
+            // Apply business logic to each entity
+            var processed = entities.Select(ApplyBusinessLogic).ToList();
+            _logger.LogInformation("Successfully retrieved {Count} {EntityName} entities", processed.Count, EntityName);
+            return processed;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while fetching all {EntityName} entities", EntityName);
+            throw new InvalidOperationException($"Spring Boot error for fetching all {EntityName} entities: {ex.Message}", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request timeout while fetching all {EntityName} entities", EntityName);
+            throw new TimeoutException($"Request to Spring Boot timed out while fetching all {EntityName} entities", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while fetching all {EntityName} entities", EntityName);
+            throw;
+        }
     }
 
     /// <summary>
@@ -146,15 +169,39 @@ public abstract class BaseService<T> : IBaseService<T> where T : class
     /// </summary>
     public virtual async Task<T> CreateAsync(T entity, CancellationToken ct = default)
     {
-        _logger.LogInformation("CreateAsync called for {EntityName} - STUB: Not yet implemented", EntityName);
-        
-        // TODO: Implement when business logic is defined
-        // 1. Validate entity data
-        // 2. Apply business rules
-        // 3. Call Spring Boot API
-        // 4. Return created entity
-        
-        throw new NotImplementedException($"CreateAsync for {EntityName} is not yet implemented. Define validation and business logic first.");
+        _logger.LogInformation("Creating new {EntityName} entity", EntityName);
+
+        // Validate entity input
+        ValidateEntity(entity);
+
+        try
+        {
+            var created = await _springClient.PostAsync<T, T>(ApiEndpoint, entity, ct);
+            if (created == null)
+            {
+                _logger.LogError("Spring Boot returned null when creating {EntityName}", EntityName);
+                throw new InvalidOperationException($"Failed to create {EntityName} - backend returned null");
+            }
+
+            created = ApplyBusinessLogic(created);
+            _logger.LogInformation("Successfully created {EntityName} entity", EntityName);
+            return created;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while creating {EntityName}", EntityName);
+            throw new InvalidOperationException($"Spring Boot error while creating {EntityName}: {ex.Message}", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request timeout while creating {EntityName}", EntityName);
+            throw new TimeoutException($"Request to Spring Boot timed out while creating {EntityName}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while creating {EntityName}", EntityName);
+            throw;
+        }
     }
 
     /// <summary>
@@ -162,17 +209,52 @@ public abstract class BaseService<T> : IBaseService<T> where T : class
     /// </summary>
     public virtual async Task<T?> UpdateAsync(int id, T entity, CancellationToken ct = default)
     {
-        _logger.LogInformation("UpdateAsync called for {EntityName} ID {Id} - STUB: Not yet implemented", EntityName, id);
-        
-        // TODO: Implement when business logic is defined
-        // 1. Validate ID
-        // 2. Validate entity data
-        // 3. Check if entity exists
-        // 4. Apply business rules
-        // 5. Call Spring Boot API
-        // 6. Return updated entity
-        
-        throw new NotImplementedException($"UpdateAsync for {EntityName} is not yet implemented. Define validation and business logic first.");
+        _logger.LogInformation("Updating {EntityName} with ID {Id}", EntityName, id);
+
+        // Validate ID and entity
+        if (id <= 0)
+        {
+            _logger.LogWarning("Invalid {EntityName} ID for update: {Id}", EntityName, id);
+            throw new ValidationException($"{EntityName} ID must be greater than 0. Provided: {id}");
+        }
+        ValidateEntity(entity);
+
+        try
+        {
+            // Verify entity exists before updating
+            var existing = await _springClient.GetAsync<T>($"{ApiEndpoint}/{id}", ct);
+            if (existing == null)
+            {
+                _logger.LogWarning("{EntityName} with ID {Id} not found - cannot update", EntityName, id);
+                return null;
+            }
+
+            var updated = await _springClient.PutAsync<T, T>($"{ApiEndpoint}/{id}", entity, ct);
+            if (updated == null)
+            {
+                _logger.LogError("Spring Boot returned null when updating {EntityName} {Id}", EntityName, id);
+                throw new InvalidOperationException($"Failed to update {EntityName} {id} - backend returned null");
+            }
+
+            updated = ApplyBusinessLogic(updated);
+            _logger.LogInformation("Successfully updated {EntityName} with ID {Id}", EntityName, id);
+            return updated;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while updating {EntityName} {Id}", EntityName, id);
+            throw new InvalidOperationException($"Spring Boot error while updating {EntityName} {id}: {ex.Message}", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request timeout while updating {EntityName} {Id}", EntityName, id);
+            throw new TimeoutException($"Request to Spring Boot timed out while updating {EntityName} {id}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while updating {EntityName} {Id}", EntityName, id);
+            throw;
+        }
     }
 
     /// <summary>
