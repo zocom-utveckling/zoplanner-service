@@ -44,11 +44,13 @@ builder.Services.AddHttpClient<ISpringApiClient, SpringApiClient>((serviceProvid
     TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
 .AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
-// Register all 5 services with generic base interface
+// Register services
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IBaseService<Customer>, CustomerService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBaseService<User>, UserService>();
 builder.Services.AddScoped<IBaseService<Assignment>, AssignmentService>();
-builder.Services.AddScoped<IBaseService<Schedule>, ScheduleService>();
+builder.Services.AddScoped<IBaseService<Session>, SessionService>();
 builder.Services.AddScoped<IBaseService<Class>, ClassService>();
 
 // Add CORS (allow React and Java to connect)

@@ -10,6 +10,9 @@ public interface ISpringApiClient
         where TRequest : class 
         where TResponse : class;
     
+    Task<TResponse?> PostFormAsync<TResponse>(string endpoint, Dictionary<string, string> formData, CancellationToken ct = default) 
+        where TResponse : class;
+    
     Task<TResponse?> PutAsync<TRequest, TResponse>(string endpoint, TRequest data, CancellationToken ct = default) 
         where TRequest : class 
         where TResponse : class;
