@@ -47,6 +47,7 @@ builder.Services.AddHttpClient<ISpringApiClient, SpringApiClient>((serviceProvid
 // Register services
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IBaseService<Customer>, CustomerService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBaseService<User>, UserService>();
 builder.Services.AddScoped<IBaseService<Assignment>, AssignmentService>();
 builder.Services.AddScoped<IBaseService<Session>, SessionService>();
