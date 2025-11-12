@@ -15,11 +15,13 @@ namespace zoplannerservice.Controllers;
 public class AssignmentController : ControllerBase
 {
     private readonly IAssignmentService _assignmentService;
+    private readonly ISpringApiClient _springClient;
     private readonly ILogger<AssignmentController> _logger;
 
-    public AssignmentController(IAssignmentService assignmentService, ILogger<AssignmentController> logger)
+    public AssignmentController(IAssignmentService assignmentService, ISpringApiClient springClient, ILogger<AssignmentController> logger)
     {
         _assignmentService = assignmentService;
+        _springClient = springClient;
         _logger = logger;
     }
 
@@ -79,6 +81,85 @@ public class AssignmentController : ControllerBase
         }
     }
 
+
+    /// <summary>
+    /// Get sessions for a specific assignment
+    /// GET /api/assignment/{id}/sessions
+    /// </summary>
+    [HttpGet("{id}/sessions")]
+    [ProducesResponseType(typeof(IEnumerable<Session>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
+    public async Task<ActionResult<IEnumerable<Session>>> GetSessionsByAssignmentId(long id, CancellationToken ct)
+    {
+        try
+        {
+            var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
+            if (assignment == null)
+            {
+                return NotFound(new { message = $"Assignment with ID {id} not found" });
+            }
+
+            var sessions = await _springClient.GetAsync<IEnumerable<Session>>($"assignments/{id}/sessions", ct);
+            return Ok(sessions ?? Enumerable.Empty<Session>());
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error for assignment {Id}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error getting sessions for assignment {Id}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error getting sessions for assignment", details = ex.Message });
+        }
+    }
+
+
+    /// <summary>
+    /// Create a new session for a specific assignment
+    /// POST /api/assignment/{id}/sessions
+    /// </summary>
+    [HttpPost("{id}/sessions")]
+    [ProducesResponseType(typeof(Session), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Session>> CreateSession(long id, [FromBody] CreateSessionRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
+            if (assignment == null)
+            {
+                return NotFound(new { message = $"Assignment with ID {id} not found" });
+            }
+
+            // Send CreateSessionRequest to Java API
+            var session = await _springClient.PostAsync<CreateSessionRequest, Session>(
+                $"assignments/{id}/sessions", request, ct);
+
+            if (session == null)
+            {
+                throw new InvalidOperationException("Backend returned null when creating session");
+            }
+
+            return CreatedAtAction(nameof(GetSessionsByAssignmentId), new { id = id }, session);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating session for assignment {Id}", id);
+            return StatusCode(500, new { message = "Error creating session", details = ex.Message });
+        }
+    }
+ 
+    
     /// <summary>
     /// Get assignments by Class ID
     /// </summary>

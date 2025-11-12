@@ -26,9 +26,10 @@ public interface IBaseService<T> where T : class
     /// Update existing entity
     /// </summary>
     Task<T?> UpdateAsync(int id, T entity, CancellationToken ct = default);
-    
+
     /// <summary>
     /// Delete entity by ID
     /// </summary>
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);
+    
 }

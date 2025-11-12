@@ -1,10 +1,20 @@
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
+
+
 namespace zoplannerservice.Models
 {
     public class Session
     {
         public long Id { get; set; }
-        public long? AssignmentId { get; set; }  // Nullable 
-        public string? TimeStart { get; set; }    // String to accept Spring Boot format "2025-11-16 10:00"
-        public string? TimeEnd { get; set; }      // String to accept Spring Boot format "2025-11-16 12:00"
+        public long? AssignmentId { get; set; }
+
+        [Required]
+        [JsonPropertyName("timeStart")]
+        public DateTime TimeStart { get; set; }
+
+        [Required]
+        [JsonPropertyName("timeEnd")]
+        public DateTime TimeEnd { get; set; }
     }
 }
