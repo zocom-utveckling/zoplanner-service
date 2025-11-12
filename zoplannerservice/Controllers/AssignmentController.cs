@@ -8,16 +8,16 @@ namespace zoplannerservice.Controllers;
 
 /// <summary>
 /// Assignment controller - handles HTTP requests for assignments
-/// Only GET by ID and DELETE operations are implemented
+/// All CRUD operations are supported
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 public class AssignmentController : ControllerBase
 {
-    private readonly IBaseService<Assignment> _assignmentService;
+    private readonly IAssignmentService _assignmentService;
     private readonly ILogger<AssignmentController> _logger;
 
-    public AssignmentController(IBaseService<Assignment> assignmentService, ILogger<AssignmentController> logger)
+    public AssignmentController(IAssignmentService assignmentService, ILogger<AssignmentController> logger)
     {
         _assignmentService = assignmentService;
         _logger = logger;
