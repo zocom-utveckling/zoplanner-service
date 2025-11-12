@@ -10,11 +10,9 @@ namespace zoplannerservice.Models
         public long? AssignmentId { get; set; }
 
         [Required]
-        [JsonPropertyName("timeStart")]
-        public DateTime TimeStart { get; set; }
+        public string TimeStart { get; set; } = string.Empty;
 
         [Required]
-        [JsonPropertyName("timeEnd")]
-        public DateTime TimeEnd { get; set; }
+        public string TimeEnd { get; set; } = string.Empty;
     }
 }
