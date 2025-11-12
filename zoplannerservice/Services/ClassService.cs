@@ -95,7 +95,7 @@ public class ClassService : BaseService<Class>, IClassService
         }
         return classEntity;
     }
-    
+
     /// <summary>
     /// Validate class data
     /// </summary>
@@ -109,6 +109,44 @@ public class ClassService : BaseService<Class>, IClassService
         if (classEntity.CustomerId <= 0)
         {
             throw new ValidationException("Customer ID must be greater than 0");
+        }
+    }
+    
+    public async Task<Class?> PatchAsync(int id, PatchClassRequest request, CancellationToken ct = default)
+    {
+        if (id <= 0)
+            throw new ValidationException("Class ID must be greater than 0");
+        
+        if (request == null) 
+            throw new ValidationException("Patch data is required");
+
+        // Ensure at least one field is provided
+        if (request.Name is null && request.CustomerId is null)
+        {
+            throw new ValidationException("At least one field (Name or CustomerId) must be provided for patch");
+        }
+
+        try
+        {
+            // Optionally verify existence
+            var existing = await _springClient.GetAsync<Class>($"{ApiEndpoint}/{id}", ct);
+            if (existing == null)
+            {
+                return null;
+            }
+
+            var updated = await _springClient.PatchAsync<PatchClassRequest, Class>($"{ApiEndpoint}/{id}", request, ct);
+            
+            if (updated == null)
+            {
+                throw new InvalidOperationException($"Backend returned null when patching {EntityName} {id}");
+            }
+            return ApplyBusinessLogic(updated);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while patching {EntityName} {Id}", EntityName, id);
+            throw new InvalidOperationException($"Spring Boot error while patching {EntityName} {id}: {ex.Message}", ex);
         }
     }
 }

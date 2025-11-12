@@ -138,7 +138,37 @@ public class ClassController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Partially update a class using PATCH semantics
+    /// </summary> 
 
+    [HttpPatch("{id}")]
+    [ProducesResponseType(typeof(Class), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Class>> Patch(int id, [FromBody] PatchClassRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var updated = await _classService.PatchAsync(id, request, ct);
+            if (updated == null)
+            {
+                return NotFound(new { message = $"Class with ID {id} not found" });
+            }
+            return Ok(updated);
+        }
+       
+       catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error patching class {Id}", id);
+            return StatusCode(500, new { message = "Error patching class", details = ex.Message });
+        }
+    }
 
     /// <summary>
     /// Delete class by ID
@@ -171,42 +201,6 @@ public class ClassController : ControllerBase
             _logger.LogError(ex, "Service error while deleting class {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
-        }
-    }
-
-    [HttpPut("{id}")]
-    [ProducesResponseType(typeof(Class), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-    public async Task<ActionResult<Class>> Update(int id, [FromBody] UpdateClassRequest request, CancellationToken ct)
-    {
-        try
-        {
-            // Convert request to Class entity
-            var classEntity = new Class
-            {
-                Id = id,
-                Name = request.Name,
-                CustomerId = request.CustomerId
-            };
-
-            var updated = await _classService.UpdateAsync(id, classEntity, ct);
-            if (updated == null)
-            {
-                return NotFound(new { message = $"Class with ID {id} not found" });
-            }
-            return Ok(updated);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating class {Id}", id);
-            return StatusCode(500, new { message = "Error updating class", details = ex.Message });
         }
     }
 }

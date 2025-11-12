@@ -45,7 +45,6 @@ builder.Services.AddHttpClient<ISpringApiClient, SpringApiClient>((serviceProvid
 .AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
 // Register services
-builder.Services.AddScoped<ISpringApiClient, SpringApiClient>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IBaseService<Customer>, CustomerService>();
