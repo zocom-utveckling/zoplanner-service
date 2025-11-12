@@ -128,21 +128,34 @@ public class ClassService : BaseService<Class>, IClassService
 
         try
         {
-            // Optionally verify existence
-            var existing = await _springClient.GetAsync<Class>($"{ApiEndpoint}/{id}", ct);
-            if (existing == null)
-            {
-                return null;
-            }
-
-            var updated = await _springClient.PatchAsync<PatchClassRequest, Class>($"{ApiEndpoint}/{id}", request, ct);
-            
-            if (updated == null)
-            {
-                throw new InvalidOperationException($"Backend returned null when patching {EntityName} {id}");
-            }
-            return ApplyBusinessLogic(updated);
+            // 1. Get existing class first
+        var existing = await GetByIdAsync(id, ct);
+        if (existing == null)
+        {
+            return null;
         }
+
+        // 2. Apply partial updates to existing entity
+        if (request.Name != null)
+        {
+            existing.Name = request.Name;
+        }
+        
+        if (request.CustomerId.HasValue)
+        {
+            existing.CustomerId = request.CustomerId.Value;
+        }
+
+        // 3. Use PUT to send complete updated entity to Spring Boot
+        var updated = await _springClient.PutAsync<Class, Class>($"{ApiEndpoint}/{id}", existing, ct);
+        
+        if (updated == null)
+        {
+            throw new InvalidOperationException($"Backend returned null when updating {EntityName} {id}");
+        }
+        
+        return ApplyBusinessLogic(updated);
+    }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Spring Boot error while patching {EntityName} {Id}", EntityName, id);
