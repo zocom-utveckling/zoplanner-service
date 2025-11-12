@@ -46,13 +46,19 @@ builder.Services.AddHttpClient<ISpringApiClient, SpringApiClient>((serviceProvid
 
 // Register services
 builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<IBaseService<Customer>, CustomerService>();
+
+builder.Services.AddScoped<IClassService, ClassService>();
+builder.Services.AddScoped<IBaseService<Class>, ClassService>();
+
+builder.Services.AddScoped<IAssignmentService, AssignmentService>();
+builder.Services.AddScoped<IBaseService<Assignment>, AssignmentService>();
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBaseService<User>, UserService>();
-builder.Services.AddScoped<IBaseService<Assignment>, AssignmentService>();
+
 builder.Services.AddScoped<IBaseService<Session>, SessionService>();
-builder.Services.AddScoped<IBaseService<Class>, ClassService>();
+
 
 // Add CORS (allow React and Java to connect)
 builder.Services.AddCors(options =>
