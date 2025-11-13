@@ -7,7 +7,7 @@ namespace zoplannerservice.Controllers;
 
 /// <summary>
 /// Session controller - handles HTTP requests for sessions
-/// Only GET by ID and DELETE operations are implemented
+/// Implements full CRUD operations: GET all, GET by ID, PUT, DELETE
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
@@ -20,6 +20,27 @@ public class SessionController : ControllerBase
     {
         _sessionService = sessionService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Get all sessions
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<Session>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetAll(CancellationToken ct)
+    {
+        try
+        {
+            var sessions = await _sessionService.GetAllAsync(ct);
+            return Ok(sessions);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Service error while fetching all sessions");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+                new { message = "Backend service error", details = ex.Message });
+        }
     }
 
     /// <summary>
@@ -57,6 +78,40 @@ public class SessionController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error for session {Id}", id);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+                new { message = "Backend service error", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Update session by ID
+    /// </summary>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(Session), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Update(int id, [FromBody] Session session, CancellationToken ct)
+    {
+        try
+        {
+            var updatedSession = await _sessionService.UpdateAsync(id, session, ct);
+            
+            if (updatedSession == null)
+            {
+                return NotFound(new { message = $"Session with ID {id} not found in database" });
+            }
+
+            return Ok(updatedSession);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error while updating session {Id}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Service error while updating session {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, 
                 new { message = "Backend service error", details = ex.Message });
         }
