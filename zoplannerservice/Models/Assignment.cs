@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+
 namespace zoplannerservice.Models
 {
     public class Assignment
@@ -12,13 +13,13 @@ namespace zoplannerservice.Models
         public long? ConsultantId { get; set; }  
         
         [Required]
-        public DateOnly DateStart { get; set; }  
+        public DateTime? DateStart { get; set; }  
         
         [Required]
-        public DateOnly DateEnd { get; set; }    
+        public DateTime? DateEnd { get; set; }    
         public long? ClassId { get; set; }   
 
-        [JsonIgnore]
+     
         public List<Session>? Sessions { get; set; } 
     }
 }

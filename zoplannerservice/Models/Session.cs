@@ -7,16 +7,18 @@ namespace zoplannerservice.Models
     public class Session
     {
         public long Id { get; set; }
+        
+        [JsonIgnore]
         public long? AssignmentId { get; set; }
 
         [Required]
-        public DateTime TimeStart { get; set; }
+        public string TimeStart { get; set; } = string.Empty;
 
         [Required]
-        public DateTime TimeEnd { get; set; } 
+        public string TimeEnd { get; set; } = string.Empty;
 
 
-        [JsonIgnore]
-        public Assignment? Assignment { get; set; }
+       
+       // public Assignment? Assignment { get; set; } //
     }
 }
