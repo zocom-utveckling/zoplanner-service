@@ -1,6 +1,6 @@
 # Zoplanner Service - .NET to Spring Boot Connection
 
-## 🚀 Quick Start
+## 🚀 Quick Start .NET 8 SDK
 
 **Application URL:** http://localhost:5027  
 **Swagger UI:** http://localhost:5027/swagger/index.html
