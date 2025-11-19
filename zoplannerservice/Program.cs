@@ -8,8 +8,12 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services 
-builder.Services.AddControllers();
+// Add services and configure JSON (DateOnly -> yyyy-MM-dd)
+builder.Services.AddControllers().AddJsonOptions(o =>
+{
+    o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    o.JsonSerializerOptions.Converters.Add(new zoplannerservice.Serialization.DateOnlyJsonConverter());
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

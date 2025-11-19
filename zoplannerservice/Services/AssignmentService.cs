@@ -155,7 +155,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
 
         // Validate dates after merge
-        if (existing.DateEnd < existing.DateStart)
+        if (existing.DateStart.HasValue && existing.DateEnd.HasValue && existing.DateEnd.Value < existing.DateStart.Value)
         {
             throw new ValidationException("End date must be after start date");
         }

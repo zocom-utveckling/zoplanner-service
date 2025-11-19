@@ -13,10 +13,10 @@ namespace zoplannerservice.Models
         public long? ConsultantId { get; set; }  
         
         [Required]
-        public DateTime? DateStart { get; set; }  
+        public DateOnly? DateStart { get; set; }  
         
         [Required]
-        public DateTime? DateEnd { get; set; }    
+        public DateOnly? DateEnd { get; set; }    
         public long? ClassId { get; set; }   
 
      
