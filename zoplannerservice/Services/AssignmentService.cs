@@ -97,94 +97,100 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
     }
 
-    
     public async Task<Assignment?> PatchAsync(long id, PatchAssignmentRequest request, CancellationToken ct = default)
+{
+    if (id <= 0)
+        throw new ValidationException("Assignment ID must be greater than 0");
+
+    if (request == null)
+        throw new ValidationException("Patch data is required");
+
+    // Check if no useful fields were provided
+    bool noFieldsProvided =
+        string.IsNullOrWhiteSpace(request.CourseName) &&
+        request.ConsultantId is null &&
+        request.DateStart == default &&
+        request.DateEnd == default &&
+        request.ClassId is null;
+
+    if (noFieldsProvided)
+        throw new ValidationException("At least one field must be provided for patch");
+
+    try
     {
-        if (id <= 0)
-            throw new ValidationException("Assignment ID must be greater than 0");
-        
-        if (request == null) 
-            throw new ValidationException("Patch data is required");
+        // Load existing assignment from backend
+        var existing = await GetByIdAsync((int)id, ct);
+        if (existing == null)
+            return null;
 
-        // Ensure at least one field is provided
-        if (request.CourseName is null && request.ConsultantId is null && request.DateStart is null && request.DateEnd is null
-            && request.ClassId is null)
-        {
-            throw new ValidationException("At least one field must be provided for patch");
-        }
+        bool hasChanges = false;
 
-        try
-        {
-            // Get existing assignment from Java API
-            var existing = await GetByIdAsync((int)id, ct);
-            if (existing == null)
-            {
-                return null;
-            }
-
-            bool hasChanges = false;
-
-           if (request.CourseName != null && existing.CourseName != request.CourseName)
+        // --- Apply individual field changes ---
+        if (!string.IsNullOrWhiteSpace(request.CourseName) &&
+            existing.CourseName != request.CourseName)
         {
             existing.CourseName = request.CourseName;
             hasChanges = true;
         }
-        
-        if (request.ConsultantId.HasValue && existing.ConsultantId != request.ConsultantId.Value)
+
+        if (request.ConsultantId.HasValue &&
+            existing.ConsultantId != request.ConsultantId.Value)
         {
             existing.ConsultantId = request.ConsultantId.Value;
             hasChanges = true;
         }
-        
-        if (request.DateStart.HasValue && existing.DateStart != request.DateStart.Value)
+
+        if (request.DateStart != default &&
+            existing.DateStart != request.DateStart)
         {
-            existing.DateStart = request.DateStart.Value;
+            existing.DateStart = request.DateStart;
             hasChanges = true;
         }
-        
-        if (request.DateEnd.HasValue && existing.DateEnd != request.DateEnd.Value)
+
+        if (request.DateEnd != default &&
+            existing.DateEnd != request.DateEnd)
         {
-            existing.DateEnd = request.DateEnd.Value;
+            existing.DateEnd = request.DateEnd;
             hasChanges = true;
         }
-        
-        if (request.ClassId.HasValue && existing.ClassId != request.ClassId.Value)
+
+        if (request.ClassId.HasValue &&
+            existing.ClassId != request.ClassId.Value)
         {
             existing.ClassId = request.ClassId.Value;
             hasChanges = true;
         }
 
-        // Validate dates after merge
+        // Validate updated date range
         if (existing.DateEnd < existing.DateStart)
-        {
             throw new ValidationException("End date must be after start date");
-        }
 
-        // If no actual changes, return existing
+        // If nothing changed → return existing
         if (!hasChanges)
         {
-            _logger.LogInformation("No changes detected for {EntityName} {Id}", EntityName, id);
+            _logger.LogInformation("No changes detected for Assignment {Id}", id);
             return existing;
         }
 
-        // Step 3: Use PUT to send complete updated entity to Java API
-        var updated = await _springClient.PutAsync<Assignment, Assignment>($"{ApiEndpoint}/{id}", existing, ct);
-        
+        // Send updated assignment via PUT to Spring API
+        var updated = await _springClient.PutAsync<Assignment, Assignment>(
+            $"{ApiEndpoint}/{id}", existing, ct);
+
         if (updated == null)
-        {
-            throw new InvalidOperationException($"Backend returned null when updating {EntityName} {id}");
-        }
-        
-        _logger.LogInformation("Successfully patched {EntityName} {Id}", EntityName, id);
+            throw new InvalidOperationException($"Backend returned null when updating Assignment {id}");
+
+        _logger.LogInformation("Successfully patched Assignment {Id}", id);
         return ApplyBusinessLogic(updated);
     }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Spring Boot error while patching {EntityName} with ID {Id}", EntityName, id);
-            throw new InvalidOperationException($"Spring Boot error while patching {EntityName} with ID {id}: {ex.Message}", ex);
-        }
+    catch (HttpRequestException ex)
+    {
+        _logger.LogError(ex, "Spring Boot error while patching Assignment {Id}", id);
+        throw new InvalidOperationException(
+            $"Spring Boot error while patching Assignment {id}: {ex.Message}", ex);
     }
+}
 
+    
 
 
 

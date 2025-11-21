@@ -13,10 +13,10 @@ public class CreateAssignmentRequest
     public long? ConsultantId { get; set; }
 
     [Required(ErrorMessage = "DateStart is required")]
-    public DateTime? DateStart { get; set; }  
+    public DateOnly DateStart { get; set; }  
 
     [Required(ErrorMessage = "DateEnd is required")]
-    public DateTime? DateEnd { get; set; }    
+    public DateOnly DateEnd { get; set; }    
 
     public long? ClassId { get; set; }      
 }
