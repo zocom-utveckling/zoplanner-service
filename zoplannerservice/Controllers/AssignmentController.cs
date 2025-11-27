@@ -259,11 +259,9 @@ public class AssignmentController : ControllerBase
             var assignment = new Assignment
             {
                 Id = id,
-                CourseName = request.CourseName,
                 ConsultantId = request.ConsultantId,
                 DateStart = request.DateStart,
                 DateEnd = request.DateEnd,
-                ClassId = request.ClassId
             };
             var updated = await _assignmentService.UpdateAsync((int)id, assignment, ct);
             if (updated == null)

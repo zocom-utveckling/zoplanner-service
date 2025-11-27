@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.Enums.SessionLocation;
 namespace zoplannerservice.Models
 {
     public class CreateSessionRequest
@@ -8,5 +9,10 @@ namespace zoplannerservice.Models
 
         [Required(ErrorMessage = "TimeEnd is required")]
         public string TimeEnd { get; set; } = string.Empty;
+
+        [Required]
+        public SessionLocation Location { get; set; }
+
+        public String Comment { get; set; } = string.Empty;
     }
 }   

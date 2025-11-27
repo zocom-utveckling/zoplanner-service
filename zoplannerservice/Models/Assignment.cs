@@ -9,7 +9,6 @@ namespace zoplannerservice.Models
         public long Id { get; set; }
 
         [Required]
-         public string CourseName { get; set; } = string.Empty;
         public long? ConsultantId { get; set; }  
         
         [Required]
@@ -17,9 +16,10 @@ namespace zoplannerservice.Models
         
         [Required]
         public DateOnly? DateEnd { get; set; }    
-        public long? ClassId { get; set; }   
 
-     
+        [Required]
+        public long? CourseId { get; set; }
+
         public List<Session>? Sessions { get; set; } 
     }
 }

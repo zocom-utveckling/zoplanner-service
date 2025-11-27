@@ -23,10 +23,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         {
             throw new ValidationException("Assignment data is required");
         }
-        if (string.IsNullOrWhiteSpace(request.CourseName))
-        {
-            throw new ValidationException("CourseName is required");
-        }
+
         if (request.DateStart == null)
         {
             throw new ValidationException("DateStart is required");
@@ -107,8 +104,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
             throw new ValidationException("Patch data is required");
 
         // Ensure at least one field is provided
-        if (request.CourseName is null && request.ConsultantId is null && request.DateStart is null && request.DateEnd is null
-            && request.ClassId is null)
+        if (request.ConsultantId is null && request.DateStart is null && request.DateEnd is null)
         {
             throw new ValidationException("At least one field must be provided for patch");
         }
@@ -124,11 +120,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
 
             bool hasChanges = false;
 
-           if (request.CourseName != null && existing.CourseName != request.CourseName)
-        {
-            existing.CourseName = request.CourseName;
-            hasChanges = true;
-        }
+
         
         if (request.ConsultantId.HasValue && existing.ConsultantId != request.ConsultantId.Value)
         {
@@ -148,11 +140,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
             hasChanges = true;
         }
         
-        if (request.ClassId.HasValue && existing.ClassId != request.ClassId.Value)
-        {
-            existing.ClassId = request.ClassId.Value;
-            hasChanges = true;
-        }
+
 
         // Validate dates after merge
         if (existing.DateStart.HasValue && existing.DateEnd.HasValue && existing.DateEnd.Value < existing.DateStart.Value)
@@ -203,9 +191,6 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
     protected override void ValidateEntity(Assignment assignment)
     {
         base.ValidateEntity(assignment);
-        if (string.IsNullOrWhiteSpace(assignment.CourseName))
-        
-            throw new ValidationException("Course name is required");
         if (assignment.DateStart == default)
             throw new ValidationException("Start date is required");
         if (assignment.DateEnd == default)

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using zoplannerservice.Enums.SessionLocation;
 
 
 namespace zoplannerservice.Models
@@ -7,7 +8,7 @@ namespace zoplannerservice.Models
     public class Session
     {
         public long Id { get; set; }
-        
+
         [JsonIgnore]
         public long? AssignmentId { get; set; }
 
@@ -17,7 +18,10 @@ namespace zoplannerservice.Models
         [Required]
         public string TimeEnd { get; set; } = string.Empty;
 
+        public String Comment { get; set; } = string.Empty;
 
+        [Required]
+        public SessionLocation Location { get; set; }
        
        // public Assignment? Assignment { get; set; } //
     }

@@ -9,7 +9,6 @@ public class UpdateAssignmentRequest
 {
     [Required(ErrorMessage = "CourseName is required")]
     [MaxLength(200)]
-    public string CourseName { get; set; } = string.Empty;
 
     public long? ConsultantId { get; set; }
 
@@ -19,5 +18,4 @@ public class UpdateAssignmentRequest
     [Required(ErrorMessage = "DateEnd is required")]
     public DateOnly? DateEnd { get; set; }    
 
-    public long? ClassId { get; set; }      
 }
