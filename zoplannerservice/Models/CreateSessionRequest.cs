@@ -13,6 +13,6 @@ namespace zoplannerservice.Models
         [Required]
         public SessionLocation Location { get; set; }
 
-        public String Comment { get; set; } = string.Empty;
+        public string Comment { get; set; } = string.Empty;
     }
 }   

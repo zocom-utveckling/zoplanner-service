@@ -160,33 +160,7 @@ public class AssignmentController : ControllerBase
     }
  
     
-    /// <summary>
-    /// Get assignments by Class ID
-    /// </summary>
-
-    [HttpGet("class/{classId}")]
-    [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<Assignment>>> GetByClassId(long classId, CancellationToken ct)
-    {
-        try
-        {
-            var assignments = await _assignmentService.GetByClassIdAsync(classId, ct);
-            return Ok(assignments);
-        }
-        catch (ValidationException ex)
-        {
-            _logger.LogWarning(ex, "Validation error for class {ClassId}", classId);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogError(ex, "Service error for class {ClassId}", classId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Error getting assignments by class", details = ex.Message });
-        }
-    }
+    
 
     /// <summary>
     /// Get assignments by Consultant ID

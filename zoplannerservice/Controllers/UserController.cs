@@ -9,6 +9,9 @@ namespace zoplannerservice.Controllers;
 /// User controller - handles HTTP requests for users
 /// Implements full CRUD operations: GET all, GET by ID, GET by username, POST, PUT, DELETE
 /// </summary>
+
+// TODO: Implement endpoint GetUsersByRole
+
 [ApiController]
 [Route("api/[controller]")]
 public class UserController : ControllerBase
@@ -186,6 +189,7 @@ public class UserController : ControllerBase
                 new { message = "Backend service error", details = ex.Message });
         }
     }
+
 
     /// <summary>
     /// Get user by username

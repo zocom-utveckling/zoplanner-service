@@ -18,7 +18,7 @@ namespace zoplannerservice.Models
         [Required]
         public string TimeEnd { get; set; } = string.Empty;
 
-        public String Comment { get; set; } = string.Empty;
+        public string Comment { get; set; } = string.Empty;
 
         [Required]
         public SessionLocation Location { get; set; }
