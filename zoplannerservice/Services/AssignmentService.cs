@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http.HttpResults;
 using zoplannerservice.Models;
 
 namespace zoplannerservice.Services;
@@ -7,6 +8,10 @@ namespace zoplannerservice.Services;
 /// Assignment service - inherits all CRUD operations from BaseService
 /// Add assignment-specific business logic here
 /// </summary>
+
+//TODO: Implement method that retrieves active assignments between week x to y
+
+
 public class AssignmentService : BaseService<Assignment>, IAssignmentService
 {
     protected override string EntityName => "Assignment";
@@ -41,6 +46,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
             {
                 throw new InvalidOperationException("Backend returned null when creating Assignment");
             }
+            created.CourseId = (int)request.CourseId;
             return ApplyBusinessLogic(created);
         }
         catch (HttpRequestException ex)
@@ -60,7 +66,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
 
     public async Task<IEnumerable<Assignment>> GetByConsultantIdAsync(long consultantId, CancellationToken ct = default)
     {
-        if (consultantId <= 0)
+        if (consultantId < 0)
         {
             throw new ValidationException("Consultant ID must be greater than 0");
         }
@@ -139,7 +145,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
 
         // Step 3: Use PUT to send complete updated entity to Java API
-        var updated = await _springClient.PutAsync<Assignment, Assignment>($"{ApiEndpoint}/{id}", existing, ct);
+        var updated = await _springClient.PatchAsync<Assignment, Assignment>($"{ApiEndpoint}/{id}", existing, ct);
         
         if (updated == null)
         {

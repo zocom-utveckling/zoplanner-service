@@ -5,14 +5,20 @@ using Polly;
 using Polly.Extensions.Http;
 using System.Net.Http;
 using Microsoft.OpenApi.Models;
+using System.Text.Json.Serialization;
+using System.Runtime.Serialization;
+using zoplannerservice.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services and configure JSON (DateOnly -> yyyy-MM-dd)
+// Add services and configure JSON (DateOnly -> yyyy-MM-dd), Parse string to enum
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-    o.JsonSerializerOptions.Converters.Add(new zoplannerservice.Serialization.DateOnlyJsonConverter());
+    o.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+    o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    o.JsonSerializerOptions.Converters.Add(new FormatDateTime());
+
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -61,8 +67,17 @@ builder.Services.AddScoped<IBaseService<Assignment>, AssignmentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBaseService<User>, UserService>();
 
+builder.Services.AddScoped<ISessionService, SessionService>();
 builder.Services.AddScoped<IBaseService<Session>, SessionService>();
 
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IBaseService<Course>, CourseService>();
+
+builder.Services.AddScoped<IConsultantService, ConsultantService>();
+builder.Services.AddScoped<IBaseService<Consultant>, ConsultantService>();
+
+builder.Services.AddScoped<IManagerService, ManagerService>();
+builder.Services.AddScoped<IBaseService<Manager>, ManagerService>();
 
 // Add CORS (allow React and Java to connect)
 builder.Services.AddCors(options =>

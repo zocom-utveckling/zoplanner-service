@@ -7,6 +7,9 @@ namespace zoplannerservice.Services;
 /// course service - inherits all CRUD operations from BaseService
 /// Add course-specific business logic here
 /// </summary>
+
+//TODO: Implement method that retrieves active courses between week x to y
+
 public class CourseService : BaseService<Course>, ICourseService
 {
     protected override string EntityName => "Course";
@@ -16,6 +19,7 @@ public class CourseService : BaseService<Course>, ICourseService
         : base(springClient, logger)
     {
     }
+
 
     public async Task<Course> CreateAsync(CreateCourseRequest request, CancellationToken ct = default)
     {
@@ -32,7 +36,7 @@ public class CourseService : BaseService<Course>, ICourseService
         {
             throw new ValidationException("DateEnd is required");
         }
-        if (request.ClassId == null)
+        if (request.ClassId < 0)
         {
             throw new ValidationException("ClassId is required");
         }
@@ -45,7 +49,8 @@ public class CourseService : BaseService<Course>, ICourseService
         try
         {
             // Send only the fields without ID to Spring Boot
-            var created = await _springClient.PostAsync<CreateCourseRequest, Course>(ApiEndpoint, request, ct);
+            var created = await _springClient.PostAsync<CreateCourseRequest, Course>($"{ApiEndpoint}/class/{request.ClassId}", request, ct);
+            Console.WriteLine(created);
             if (created == null)
             {
                 throw new InvalidOperationException("Backend returned null when creating course");

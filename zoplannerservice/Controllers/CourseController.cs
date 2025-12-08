@@ -10,6 +10,9 @@ namespace zoplannerservice.Controllers;
 /// Course controller - handles HTTP requests for courses
 /// All CRUD operations are supported
 /// </summary>
+
+//TODO: Implement endpoint that retrieves active courses between week x to y
+
 [ApiController]
 [Route("api/[controller]")]
 public class CourseController : ControllerBase
@@ -36,7 +39,7 @@ public class CourseController : ControllerBase
     {
         try
         {
-        var courses = await _courseService.GetAllAsync(ct);
+        var courses = await _courseService.GetAllSync(ct);
         return Ok(courses);
        }
         catch (Exception ex)
@@ -208,6 +211,40 @@ public class CourseController : ControllerBase
             return StatusCode(500, new { message = "Error patching course", details = ex.Message });
         }
     }
+    /// <summary>
+    /// Get Assignments by course ID
+    /// </summary>
+    //[HttpGet("{id}/courses")]
+    //[ProducesResponseType(typeof(IEnumerable<Session>), StatusCodes.Status200OK)]
+    //[ProducesResponseType(StatusCodes.Status404NotFound)]
+    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
+    //public async Task<ActionResult<IEnumerable<Assignment>>> GetAssignmentsByCourseId(long id, CancellationToken ct)
+    //{
+    //    try
+    //    {
+    //        var course = await _courseService.GetByIdAsync((int)id, ct);
+    //        if (course == null)
+    //        {
+    //            return NotFound(new { message = $"Course with ID {id} not found" });
+    //        }
+
+    //        var assignments = await _springClient.GetAsync<IEnumerable<Assignment>>($"courses/{id}/assignments", ct);
+    //        return Ok(assignments ?? Enumerable.Empty<Assignment>());
+    //    }
+    //    catch (ValidationException ex)
+    //    {
+    //        _logger.LogWarning(ex, "Validation error for course {Id}", id);
+    //        return BadRequest(new { message = ex.Message });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogWarning(ex, "Error getting assignments for course {Id}", id);
+    //        return StatusCode(StatusCodes.Status500InternalServerError,
+    //            new { message = "Error getting assignments for course", details = ex.Message });
+    //    }
+    //}
 
 
     /// <summary>

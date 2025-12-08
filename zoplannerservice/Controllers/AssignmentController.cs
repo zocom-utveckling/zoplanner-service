@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Services;
 using zoplannerservice.Models;
 using System.ComponentModel.DataAnnotations;
-using System.Linq.Expressions;
 
 namespace zoplannerservice.Controllers;
 
@@ -10,6 +9,10 @@ namespace zoplannerservice.Controllers;
 /// Assignment controller - handles HTTP requests for assignments
 /// All CRUD operations are supported
 /// </summary>
+
+//TODO: Implement endpoint that retrieves active assignments between week x to y
+
+
 [ApiController]
 [Route("api/[controller]")]
 public class AssignmentController : ControllerBase
@@ -36,7 +39,7 @@ public class AssignmentController : ControllerBase
     {
         try
         {
-        var assignments = await _assignmentService.GetAllAsync(ct);
+        var assignments = await _assignmentService.GetAllSync(ct);
         return Ok(assignments);
        }
         catch (Exception ex)
@@ -97,11 +100,7 @@ public class AssignmentController : ControllerBase
         try
         {
             var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
-            if (assignment == null)
-            {
-                return NotFound(new { message = $"Assignment with ID {id} not found" });
-            }
-
+            
             var sessions = await _springClient.GetAsync<IEnumerable<Session>>($"assignments/{id}/sessions", ct);
             return Ok(sessions ?? Enumerable.Empty<Session>());
         }
@@ -117,50 +116,6 @@ public class AssignmentController : ControllerBase
                 new { message = "Error getting sessions for assignment", details = ex.Message });
         }
     }
-
-
-    /// <summary>
-    /// Create a new session for a specific assignment
-    /// POST /api/assignment/{id}/sessions
-    /// </summary>
-    [HttpPost("{id}/sessions")]
-    [ProducesResponseType(typeof(Session), StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Session>> CreateSession(long id, [FromBody] CreateSessionRequest request, CancellationToken ct)
-    {
-        try
-        {
-            var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
-            if (assignment == null)
-            {
-                return NotFound(new { message = $"Assignment with ID {id} not found" });
-            }
-
-            // Send CreateSessionRequest to Java API
-            var session = await _springClient.PostAsync<CreateSessionRequest, Session>(
-                $"assignments/{id}/sessions", request, ct);
-
-            if (session == null)
-            {
-                throw new InvalidOperationException("Backend returned null when creating session");
-            }
-
-            return CreatedAtAction(nameof(GetSessionsByAssignmentId), new { id = id }, session);
-        }
-        catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating session for assignment {Id}", id);
-            return StatusCode(500, new { message = "Error creating session", details = ex.Message });
-        }
-    }
- 
-    
-    
 
     /// <summary>
     /// Get assignments by Consultant ID
@@ -203,7 +158,7 @@ public class AssignmentController : ControllerBase
         try
         {
             var createdAssignment = await _assignmentService.CreateAsync(request, ct);
-            return CreatedAtAction(nameof(GetById), new { id = createdAssignment.Id }, createdAssignment);
+            return CreatedAtAction(nameof(GetById), new { id = createdAssignment.Id}, createdAssignment);
         }
         catch (ValidationException ex)
         {
@@ -230,13 +185,17 @@ public class AssignmentController : ControllerBase
     {
         try
         {
-            var assignment = new Assignment
+            var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
+            if (assignment == null)
             {
-                Id = id,
-                ConsultantId = request.ConsultantId,
-                DateStart = request.DateStart,
-                DateEnd = request.DateEnd,
-            };
+                return NotFound(new { message = $"Assignment with ID {id} not found" });
+            }
+
+            assignment.ConsultantId = request.ConsultantId;
+            assignment.DateStart = request.DateStart;
+            assignment.DateEnd = request.DateEnd;
+            assignment.CourseId = assignment.Course.Id;
+
             var updated = await _assignmentService.UpdateAsync((int)id, assignment, ct);
             if (updated == null)
             {
@@ -257,33 +216,35 @@ public class AssignmentController : ControllerBase
         }
     }
 
-    [HttpPatch("{id}")]
-    [ProducesResponseType(typeof(Assignment), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<Assignment>> Patch(long id, [FromBody] PatchAssignmentRequest request, CancellationToken ct)
-    {
-        try
-        {
-            var updated = await _assignmentService.PatchAsync(id, request, ct);
-            if (updated == null)
-            {
-                return NotFound(new { message = $"Assignment with ID {id} not found" });
-            }
-            return Ok(updated);
-        }
+
+    //Patch has not been implemented in Java API for assignments
+    //[HttpPatch("{id}")]
+    //[ProducesResponseType(typeof(Assignment), StatusCodes.Status200OK)]
+    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+    //[ProducesResponseType(StatusCodes.Status404NotFound)]
+    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    //public async Task<ActionResult<Assignment>> Patch(long id, [FromBody] PatchAssignmentRequest request, CancellationToken ct)
+    //{
+    //    try
+    //    {
+    //        var updated = await _assignmentService.PatchAsync(id, request, ct);
+    //        if (updated == null)
+    //        {
+    //            return NotFound(new { message = $"Assignment with ID {id} not found" });
+    //        }
+    //        return Ok(updated);
+    //    }
        
-       catch (ValidationException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error patching assignment {Id}", id);
-            return StatusCode(500, new { message = "Error patching assignment", details = ex.Message });
-        }
-    }
+    //   catch (ValidationException ex)
+    //    {
+    //        return BadRequest(new { message = ex.Message });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Error patching assignment {Id}", id);
+    //        return StatusCode(500, new { message = "Error patching assignment", details = ex.Message });
+    //    }
+    //}
 
 
     /// <summary>

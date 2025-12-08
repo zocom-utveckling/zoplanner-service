@@ -8,7 +8,6 @@ namespace zoplannerservice.Models;
 public class PatchCourseRequest
 {
  
-    [MaxLength(200)]
     public long? ClassId { get; set; }
     public DateOnly? DateStart { get; set; }    
     public DateOnly? DateEnd { get; set; }    

@@ -7,15 +7,15 @@ namespace zoplannerservice.Models;
 ///   </summary>
 public class UpdateAssignmentRequest
 {
-    [Required(ErrorMessage = "CourseName is required")]
-    [MaxLength(200)]
+
 
     public long? ConsultantId { get; set; }
 
     [Required(ErrorMessage = "DateStart is required")]
-    public DateOnly? DateStart { get; set; }  
+    public DateOnly? DateStart { get; set; }
 
     [Required(ErrorMessage = "DateEnd is required")]
-    public DateOnly? DateEnd { get; set; }    
+    public DateOnly? DateEnd { get; set; }
+
 
 }

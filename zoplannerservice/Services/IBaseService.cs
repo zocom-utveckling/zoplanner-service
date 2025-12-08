@@ -10,18 +10,20 @@ public interface IBaseService<T> where T : class
     /// <summary>
     /// Get entity by ID
     /// </summary>
-    Task<T?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<T?> GetByIdAsync(long id, CancellationToken ct = default);
     
     /// <summary>
     /// Get all entities
     /// </summary>
-    Task<IEnumerable<T>> GetAllAsync(CancellationToken ct = default);
+    Task<IEnumerable<T>> GetAllSync(CancellationToken ct = default);
     
     /// <summary>
     /// Create new entity
     /// </summary>
     Task<T> CreateAsync(T entity, CancellationToken ct = default);
-    
+
+
+
     /// <summary>
     /// Update existing entity
     /// </summary>

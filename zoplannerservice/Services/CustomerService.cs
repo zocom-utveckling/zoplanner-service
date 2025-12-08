@@ -37,14 +37,8 @@ public class CustomerService : BaseService<Customer>, ICustomerService
 
         try
         {
-            // Spring Boot uses @RequestParam, so we need to send form data instead of JSON
-            var formData = new Dictionary<string, string>
-            {
-                { "name", request.Name },
-                { "city", request.City }
-            };
-            
-            var created = await _springClient.PostFormAsync<Customer>(ApiEndpoint, formData, ct);
+            // Send only the fields without ID to Spring Boot
+            var created = await _springClient.PostAsync<CreateCustomerRequest, Customer>(ApiEndpoint, request, ct);
             if (created == null)
             {
                 throw new InvalidOperationException("Backend returned null when creating Customer");
@@ -55,6 +49,11 @@ public class CustomerService : BaseService<Customer>, ICustomerService
         {
             _logger.LogError(ex, "Spring Boot error while creating {EntityName}", EntityName);
             throw new InvalidOperationException($"Spring Boot error while creating {EntityName}: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while creating {EntityName}", EntityName);
+            throw new InvalidOperationException($"Failed to create {EntityName}", ex);
         }
     }
 

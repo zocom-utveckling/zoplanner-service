@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.Enums.UserRole;
 
 namespace zoplannerservice.Models;
 
@@ -16,8 +17,7 @@ public class CreateUserRequest
     public string Password { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Role is required")]
-    [MaxLength(100)]
-    public string Role { get; set; } = string.Empty;
+    public UserRole? Role { get; set; }
 
     [Required(ErrorMessage = "City is required")]
     [MaxLength(200)]

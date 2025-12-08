@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Services;
 using zoplannerservice.Models;
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.Exceptions;
 
 namespace zoplannerservice.Controllers;
 
@@ -13,13 +14,62 @@ namespace zoplannerservice.Controllers;
 [Route("api/[controller]")]
 public class SessionController : ControllerBase
 {
-    private readonly IBaseService<Session> _sessionService;
+    private readonly ISessionService _sessionService;
+    private readonly IAssignmentService _assignmentService;
+
     private readonly ILogger<SessionController> _logger;
 
-    public SessionController(IBaseService<Session> sessionService, ILogger<SessionController> logger)
+    public SessionController(ISessionService sessionService, IAssignmentService assignmentService, ILogger<SessionController> logger)
     {
         _sessionService = sessionService;
+        _assignmentService = assignmentService;
+
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Create a new session for a specific assignment
+    /// POST /api/assignment/{id}/sessions
+    /// </summary>
+    [HttpPost("{assignmentId}")]
+    [ProducesResponseType(typeof(Session), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<Session>> CreateSession(long assignmentId, [FromBody] CreateSessionRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var assignment = await _assignmentService.GetByIdAsync((int)assignmentId, ct);
+
+            //if (assignment == null)
+            //{
+            //    return NotFound(new { message = $"Assignment with ID {assignmentId} not found" });
+            //}
+
+            // Send CreateSessionRequest to Java API
+            var session = await _sessionService.CreateAsync(assignmentId, request, ct);
+
+            if (session == null)
+            {
+                throw new InvalidOperationException("Backend returned null when creating session");
+            }
+
+            return CreatedAtAction(nameof(GetById), new { id = session.Id }, session);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (NotFoundException ex)
+        {
+            _logger.LogError(ex, "Error creating session for assignment {Id}", assignmentId);
+            return StatusCode(404, new { message = "Error creating session", details = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating session for assignment {Id}", assignmentId);
+            return StatusCode(500, new { message = "Error creating session", details = ex.Message });
+        }
     }
 
     /// <summary>
@@ -32,7 +82,7 @@ public class SessionController : ControllerBase
     {
         try
         {
-            var sessions = await _sessionService.GetAllAsync(ct);
+            var sessions = await _sessionService.GetAllSync(ct);
             return Ok(sessions);
         }
         catch (InvalidOperationException ex)

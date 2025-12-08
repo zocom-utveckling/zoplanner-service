@@ -9,6 +9,7 @@ public class UpdateCourseRequest
 {
     [Required(ErrorMessage = "Name is required")]
     [MaxLength(200)]
+    public string Name { get; set; } = string.Empty;
 
     public long? ClassId { get; set; }
 

@@ -33,7 +33,7 @@ public class CustomerController : ControllerBase
     {
         try
         {
-            var customers = await _customerService.GetAllAsync(ct);
+            var customers = await _customerService.GetAllSync(ct);
             return Ok(customers);
         }
         catch (TimeoutException ex)
@@ -141,7 +141,7 @@ public class CustomerController : ControllerBase
         try
         {
             var created = await _customerService.CreateAsync(request, ct);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id}, created);
         }
         catch (ValidationException ex)
         {

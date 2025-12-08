@@ -5,14 +5,14 @@ namespace zoplannerservice.Models
     public class CreateSessionRequest
     {
         [Required(ErrorMessage = "TimeStart is required")]
-        public string TimeStart { get; set; } = string.Empty;
+        public DateTime TimeStart { get; set; }
 
         [Required(ErrorMessage = "TimeEnd is required")]
-        public string TimeEnd { get; set; } = string.Empty;
+        public DateTime TimeEnd { get; set; }
 
         [Required]
         public SessionLocation Location { get; set; }
 
         public string Comment { get; set; } = string.Empty;
     }
-}   
+}

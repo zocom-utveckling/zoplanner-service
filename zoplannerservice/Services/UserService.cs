@@ -47,7 +47,7 @@ public class UserService : BaseService<User>, IUserService
         {
             throw new ValidationException("Password is required");
         }
-        if (string.IsNullOrWhiteSpace(request.Role))
+        if (request.Role == null)
         {
             throw new ValidationException("Role is required");
         }

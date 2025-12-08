@@ -35,7 +35,7 @@ public class UserController : ControllerBase
     {
         try
         {
-            var users = await _userService.GetAllAsync(ct);
+            var users = await _userService.GetAllSync(ct);
             return Ok(users);
         }
         catch (InvalidOperationException ex)
