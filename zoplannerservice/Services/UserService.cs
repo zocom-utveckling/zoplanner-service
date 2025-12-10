@@ -7,6 +7,9 @@ namespace zoplannerservice.Services;
 /// User service - handles user business logic
 /// Implements full CRUD operations plus username lookup
 /// </summary>
+
+// TODO: Implement method GetUsersByRole
+
 public class UserService : BaseService<User>, IUserService
 {
     protected override string EntityName => "User";
@@ -44,7 +47,7 @@ public class UserService : BaseService<User>, IUserService
         {
             throw new ValidationException("Password is required");
         }
-        if (string.IsNullOrWhiteSpace(request.Role))
+        if (request.Role == null)
         {
             throw new ValidationException("Role is required");
         }

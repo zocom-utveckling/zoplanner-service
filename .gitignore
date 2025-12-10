@@ -1,2 +1,19 @@
 zoplannerservice/bin/Debug/net8.0/zoplannerservice.dll
 zoplannerservice/bin/Debug/net8.0/zoplannerservice.exe
+
+# Build folders
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.sql
+
+# User-specific files
+.vscode/
+*.vs
+*.user
+*.suo
+*.userosscache
+*.sln.docstates

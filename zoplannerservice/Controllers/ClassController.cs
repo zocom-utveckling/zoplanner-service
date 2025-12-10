@@ -74,7 +74,7 @@ public class ClassController : ControllerBase
     {
         try
         {
-            var classes = await _classService.GetAllAsync(ct);
+            var classes = await _classService.GetAllSync(ct);
             return Ok(classes);
         }
         catch (InvalidOperationException ex)

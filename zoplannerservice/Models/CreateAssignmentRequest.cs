@@ -6,17 +6,17 @@ namespace zoplannerservice.Models;
 ///    </summary>
 public class CreateAssignmentRequest
 {
-    [Required(ErrorMessage = "CourseName is required")]
-    [MaxLength(200)]
-    public string CourseName { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "ConsultantId is required")]
     public long? ConsultantId { get; set; }
 
     [Required(ErrorMessage = "DateStart is required")]
     public DateOnly? DateStart { get; set; }  
 
     [Required(ErrorMessage = "DateEnd is required")]
-    public DateOnly? DateEnd { get; set; }    
+    public DateOnly? DateEnd { get; set; }
 
-    public long? ClassId { get; set; }      
+    [Required]
+    public long? CourseId { get; set; }
+
 }

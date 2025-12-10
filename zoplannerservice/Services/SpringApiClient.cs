@@ -1,7 +1,10 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using zoplannerservice.Models;
+using zoplannerservice.Serialization;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace zoplannerservice.Services;
 
@@ -21,7 +24,8 @@ public class SpringApiClient : ISpringApiClient
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase  // Use camelCase for Spring Boot compatibility
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,  // Use camelCase for Spring Boot compatibility
+            Converters = { new JsonStringEnumConverter(), new FormatDateTime() }
         };
     }
 
@@ -113,6 +117,42 @@ public class SpringApiClient : ISpringApiClient
         }
     }
 
+    public async Task<TResponse?> PostAsync<TResponse>(string endpoint, CancellationToken ct = default) where TResponse : class
+    {
+        try
+        {
+            var uri = new Uri(_client.BaseAddress!, endpoint);
+            _logger.LogInformation("Calling Spring API POST {Url} with body: {RequestBody}", uri, "{}");
+
+            var response = await _client.PostAsync(endpoint, null);
+            _logger.LogInformation("Spring API POST {Url} responded {StatusCode}", uri, (int)response.StatusCode);
+
+            // Handle error responses from Spring Boot
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Spring Boot error {Status} for POST {Url}: {ErrorBody}",
+                    (int)response.StatusCode, uri, errorBody);
+
+                throw new HttpRequestException(
+                    $"Spring Boot returned {(int)response.StatusCode} ({response.StatusCode}) for POST {endpoint}: {errorBody}");
+            }
+
+            var responseContent = await response.Content.ReadAsStreamAsync(ct);
+            return await JsonSerializer.DeserializeAsync<TResponse>(responseContent, _jsonOptions, ct);
+        }
+        catch (HttpRequestException)
+        {
+            // Re-throw HttpRequestException with Spring Boot error details
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling Spring API POST {Endpoint}", endpoint);
+            throw;
+        }
+    }
+
     public async Task<TResponse?> PostFormAsync<TResponse>(
         string endpoint,
         Dictionary<string, string> formData,
@@ -156,24 +196,41 @@ public class SpringApiClient : ISpringApiClient
     }
 
     public async Task<TResponse?> PutAsync<TRequest, TResponse>(
-        string endpoint,
-        TRequest data,
-        CancellationToken ct = default)
-        where TRequest : class
-        where TResponse : class
+    string endpoint,
+    TRequest data,
+    CancellationToken ct = default)
+    where TRequest : class
+    where TResponse : class
     {
         try
         {
             var json = JsonSerializer.Serialize(data, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
             var uri = new Uri(_client.BaseAddress!, endpoint);
-            _logger.LogInformation("Calling Spring API PUT {Url}", uri);
+
+            _logger.LogInformation("Calling Spring API PUT {Url} with body: {Body}", uri, json);  // ← Log the body
+
             var response = await _client.PutAsync(endpoint, content, ct);
             _logger.LogInformation("Spring API PUT {Url} responded {StatusCode}", uri, (int)response.StatusCode);
-            response.EnsureSuccessStatusCode();
-            
+
+            // Check for errors BEFORE EnsureSuccessStatusCode
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Spring Boot error {Status} for PUT {Url}: {ErrorBody}",
+                    (int)response.StatusCode, uri, errorBody);
+
+                throw new HttpRequestException(
+                    $"Spring Boot returned {(int)response.StatusCode} ({response.StatusCode}) for PUT {endpoint}: {errorBody}");
+            }
+
             var responseContent = await response.Content.ReadAsStreamAsync(ct);
             return await JsonSerializer.DeserializeAsync<TResponse>(responseContent, _jsonOptions, ct);
+        }
+        catch (HttpRequestException)
+        {
+            // Re-throw HttpRequestException with Spring Boot error details
+            throw;
         }
         catch (Exception ex)
         {
@@ -265,4 +322,6 @@ public class SpringApiClient : ISpringApiClient
             throw;
         }
     }
+
+
 }

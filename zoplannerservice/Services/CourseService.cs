@@ -1,32 +1,31 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http.HttpResults;
 using zoplannerservice.Models;
 
 namespace zoplannerservice.Services;
 
 /// <summary>
-/// Assignment service - inherits all CRUD operations from BaseService
-/// Add assignment-specific business logic here
+/// course service - inherits all CRUD operations from BaseService
+/// Add course-specific business logic here
 /// </summary>
 
-//TODO: Implement method that retrieves active assignments between week x to y
+//TODO: Implement method that retrieves active courses between week x to y
 
-
-public class AssignmentService : BaseService<Assignment>, IAssignmentService
+public class CourseService : BaseService<Course>, ICourseService
 {
-    protected override string EntityName => "Assignment";
-    protected override string ApiEndpoint => "assignments";
+    protected override string EntityName => "Course";
+    protected override string ApiEndpoint => "courses";
 
-    public AssignmentService(ISpringApiClient springClient, ILogger<AssignmentService> logger)
+    public CourseService(ISpringApiClient springClient, ILogger<CourseService> logger)
         : base(springClient, logger)
     {
     }
 
-    public async Task<Assignment> CreateAsync(CreateAssignmentRequest request, CancellationToken ct = default)
+
+    public async Task<Course> CreateAsync(CreateCourseRequest request, CancellationToken ct = default)
     {
         if (request == null)
         {
-            throw new ValidationException("Assignment data is required");
+            throw new ValidationException("Course data is required");
         }
 
         if (request.DateStart == null)
@@ -37,16 +36,25 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         {
             throw new ValidationException("DateEnd is required");
         }
+        if (request.ClassId < 0)
+        {
+            throw new ValidationException("ClassId is required");
+        }
+
+        if (request.Name == null)
+        {
+            throw new ValidationException("ClassId is required");
+        }
 
         try
         {
             // Send only the fields without ID to Spring Boot
-            var created = await _springClient.PostAsync<CreateAssignmentRequest, Assignment>(ApiEndpoint, request, ct);
+            var created = await _springClient.PostAsync<CreateCourseRequest, Course>($"{ApiEndpoint}/class/{request.ClassId}", request, ct);
+            Console.WriteLine(created);
             if (created == null)
             {
-                throw new InvalidOperationException("Backend returned null when creating Assignment");
+                throw new InvalidOperationException("Backend returned null when creating course");
             }
-            created.CourseId = (int)request.CourseId;
             return ApplyBusinessLogic(created);
         }
         catch (HttpRequestException ex)
@@ -61,46 +69,42 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
     }
 
-
-
-
-    public async Task<IEnumerable<Assignment>> GetByConsultantIdAsync(long consultantId, CancellationToken ct = default)
+    public async Task<IEnumerable<Course>> GetByClassIdAsync(long classId, CancellationToken ct = default)
     {
-        if (consultantId < 0)
+        if (classId <= 0)
         {
-            throw new ValidationException("Consultant ID must be greater than 0");
+            throw new ValidationException("Class ID must be greater than 0");
         }
 
         try
         {
-            var assignments = await _springClient.GetAsync<IEnumerable<Assignment>>($"{ApiEndpoint}/consultant/{consultantId}", ct);
-            return assignments?.Select(a => ApplyBusinessLogic(a)) ?? Enumerable.Empty<Assignment>();
+            var courses = await _springClient.GetAsync<IEnumerable<Course>>($"{ApiEndpoint}/class/{classId}", ct);
+            return courses?.Select(a => ApplyBusinessLogic(a)) ?? Enumerable.Empty<Course>();
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
-            _logger.LogWarning("No assignments found for consultant {ConsultantId}", consultantId);
-            return Enumerable.Empty<Assignment>();
+            _logger.LogWarning("No courses found for class {ClassId}", classId);
+            return Enumerable.Empty<Course>();
         }
     }
-
     
-    public async Task<Assignment?> PatchAsync(long id, PatchAssignmentRequest request, CancellationToken ct = default)
+    public async Task<Course?> PatchAsync(long id, PatchCourseRequest request, CancellationToken ct = default)
     {
         if (id <= 0)
-            throw new ValidationException("Assignment ID must be greater than 0");
+            throw new ValidationException("Course ID must be greater than 0");
         
         if (request == null) 
             throw new ValidationException("Patch data is required");
 
         // Ensure at least one field is provided
-        if (request.ConsultantId is null && request.DateStart is null && request.DateEnd is null)
+        if (request.DateStart is null && request.DateEnd is null)
         {
             throw new ValidationException("At least one field must be provided for patch");
         }
 
         try
         {
-            // Get existing assignment from Java API
+            // Get existing course from Java API
             var existing = await GetByIdAsync((int)id, ct);
             if (existing == null)
             {
@@ -111,12 +115,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
 
 
         
-        if (request.ConsultantId.HasValue && existing.ConsultantId != request.ConsultantId.Value)
-        {
-            existing.ConsultantId = request.ConsultantId.Value;
-            hasChanges = true;
-        }
-        
+
         if (request.DateStart.HasValue && existing.DateStart != request.DateStart.Value)
         {
             existing.DateStart = request.DateStart.Value;
@@ -145,7 +144,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
 
         // Step 3: Use PUT to send complete updated entity to Java API
-        var updated = await _springClient.PatchAsync<Assignment, Assignment>($"{ApiEndpoint}/{id}", existing, ct);
+        var updated = await _springClient.PutAsync<Course, Course>($"{ApiEndpoint}/{id}", existing, ct);
         
         if (updated == null)
         {
@@ -166,25 +165,25 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
 
 
     /// <summary>
-    /// Override to add assignment-specific business logic
+    /// Override to add course-specific business logic
     /// Example: validate dates, check conflicts, calculate status
     /// </summary>
-    protected override Assignment ApplyBusinessLogic(Assignment assignment)
+    protected override Course ApplyBusinessLogic(Course course)
     {
-        // Add assignment-specific transformations here
+        // Add course-specific transformations here
         // For example: calculate status, validate deadlines
 
-        return assignment;
+        return course;
     }
     
-    protected override void ValidateEntity(Assignment assignment)
+    protected override void ValidateEntity(Course course)
     {
-        base.ValidateEntity(assignment);
-        if (assignment.DateStart == default)
+        base.ValidateEntity(course);
+        if (course.DateStart == default)
             throw new ValidationException("Start date is required");
-        if (assignment.DateEnd == default)
+        if (course.DateEnd == default)
             throw new ValidationException("End date is required");
-        if (assignment.DateEnd < assignment.DateStart)
+        if (course.DateEnd < course.DateStart)
             throw new ValidationException("End date must be after start date");
     }
 }
