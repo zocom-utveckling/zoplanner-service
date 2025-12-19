@@ -5,11 +5,13 @@ obj/
 *.exe
 *.pdb
 *.cache
+*.sql
 
 # User-specific files
 .vscode/
-.vs
+*.vs
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+

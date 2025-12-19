@@ -1,0 +1,22 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace zoplannerservice.Models;
+
+/// <summary>
+/// DTO for updating an existing assignment
+///   </summary>
+public class UpdateCourseRequest
+{
+    [Required(ErrorMessage = "Name is required")]
+    [MaxLength(200)]
+    public string Name { get; set; } = string.Empty;
+
+    public long? ClassId { get; set; }
+
+    [Required(ErrorMessage = "DateStart is required")]
+    public DateOnly? DateStart { get; set; }  
+
+    [Required(ErrorMessage = "DateEnd is required")]
+    public DateOnly? DateEnd { get; set; }    
+
+}

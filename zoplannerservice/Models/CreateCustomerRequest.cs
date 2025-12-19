@@ -15,4 +15,6 @@ public class CreateCustomerRequest
     [Required]
     [MaxLength(200)]
     public string City { get; set; } = string.Empty;
+
+    public long ManagerId { get; set; }
 }

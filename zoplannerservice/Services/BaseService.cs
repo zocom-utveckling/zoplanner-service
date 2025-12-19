@@ -23,7 +23,7 @@ public abstract class BaseService<T> : IBaseService<T> where T : class
     /// <summary>
     /// Get entity by ID with full validation and error handling
     /// </summary>
-    public virtual async Task<T?> GetByIdAsync(int id, CancellationToken ct = default)
+    public virtual async Task<T?> GetByIdAsync(long id, CancellationToken ct = default)
     {
         // Validate input
         if (id <= 0)
@@ -129,7 +129,7 @@ public abstract class BaseService<T> : IBaseService<T> where T : class
     /// <summary>
     /// Get all entities - STUB: to be implemented based on business requirements
     /// </summary>
-    public virtual async Task<IEnumerable<T>> GetAllAsync(CancellationToken ct = default)
+    public virtual async Task<IEnumerable<T>> GetAllSync(CancellationToken ct = default)
     {
         _logger.LogInformation("Fetching all {EntityName} entities", EntityName);
 
