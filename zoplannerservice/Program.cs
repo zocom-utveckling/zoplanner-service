@@ -5,9 +5,15 @@ using Polly;
 using Polly.Extensions.Http;
 using System.Net.Http;
 using Microsoft.OpenApi.Models;
+using Amazon.SQS;
+using Microsoft.Extensions.DependencyInjection;
+using Amazon;
+using Amazon.Extensions.NETCore.Setup;
+using Amazon.SQS.Model;
 using System.Text.Json.Serialization;
 using System.Runtime.Serialization;
 using zoplannerservice.Serialization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +35,21 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "API gateway applying business logic and calling Spring Boot"
     });
+});
+
+// AWS SQS
+var awsOptions = new AWSOptions
+{
+    Region = RegionEndpoint.EUNorth1
+};
+builder.Services.AddDefaultAWSOptions(awsOptions);
+builder.Services.AddAWSService<IAmazonSQS>();
+var queueUrl = builder.Configuration["AWS:QueueUrl"]
+    ?? throw new InvalidOperationException("AWS QueueUrl is not configured.");
+builder.Services.AddSingleton<NotificationService>(sp =>
+{
+    var sqsClient = sp.GetRequiredService<IAmazonSQS>();
+    return new NotificationService(sqsClient, queueUrl);
 });
 
 // Quick debug: peek config value
@@ -94,12 +115,12 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Swagger for testing
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "zoplannerservice v1");
-        c.RoutePrefix = "swagger";
-    });
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "zoplannerservice v1");
+    c.RoutePrefix = "swagger";
+});
 
 
 app.UseCors("AllowAll");
