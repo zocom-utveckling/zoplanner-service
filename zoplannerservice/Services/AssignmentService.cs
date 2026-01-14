@@ -83,13 +83,13 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
     }
 
-    
+
     public async Task<Assignment?> PatchAsync(long id, PatchAssignmentRequest request, CancellationToken ct = default)
     {
         if (id <= 0)
             throw new ValidationException("Assignment ID must be greater than 0");
-        
-        if (request == null) 
+
+        if (request == null)
             throw new ValidationException("Patch data is required");
 
         // Ensure at least one field is provided
@@ -110,51 +110,51 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
             bool hasChanges = false;
 
 
-        
-        if (request.ConsultantId.HasValue && existing.ConsultantId != request.ConsultantId.Value)
-        {
-            existing.ConsultantId = request.ConsultantId.Value;
-            hasChanges = true;
-        }
-        
-        if (request.DateStart.HasValue && existing.DateStart != request.DateStart.Value)
-        {
-            existing.DateStart = request.DateStart.Value;
-            hasChanges = true;
-        }
-        
-        if (request.DateEnd.HasValue && existing.DateEnd != request.DateEnd.Value)
-        {
-            existing.DateEnd = request.DateEnd.Value;
-            hasChanges = true;
-        }
-        
+
+            if (request.ConsultantId.HasValue && existing.ConsultantId != request.ConsultantId.Value)
+            {
+                existing.ConsultantId = request.ConsultantId.Value;
+                hasChanges = true;
+            }
+
+            if (request.DateStart.HasValue && existing.DateStart != request.DateStart.Value)
+            {
+                existing.DateStart = request.DateStart.Value;
+                hasChanges = true;
+            }
+
+            if (request.DateEnd.HasValue && existing.DateEnd != request.DateEnd.Value)
+            {
+                existing.DateEnd = request.DateEnd.Value;
+                hasChanges = true;
+            }
 
 
-        // Validate dates after merge
-        if (existing.DateStart.HasValue && existing.DateEnd.HasValue && existing.DateEnd.Value < existing.DateStart.Value)
-        {
-            throw new ValidationException("End date must be after start date");
-        }
 
-        // If no actual changes, return existing
-        if (!hasChanges)
-        {
-            _logger.LogInformation("No changes detected for {EntityName} {Id}", EntityName, id);
-            return existing;
-        }
+            // Validate dates after merge
+            if (existing.DateStart.HasValue && existing.DateEnd.HasValue && existing.DateEnd.Value < existing.DateStart.Value)
+            {
+                throw new ValidationException("End date must be after start date");
+            }
 
-        // Step 3: Use PUT to send complete updated entity to Java API
-        var updated = await _springClient.PatchAsync<Assignment, Assignment>($"{ApiEndpoint}/{id}", existing, ct);
-        
-        if (updated == null)
-        {
-            throw new InvalidOperationException($"Backend returned null when updating {EntityName} {id}");
+            // If no actual changes, return existing
+            if (!hasChanges)
+            {
+                _logger.LogInformation("No changes detected for {EntityName} {Id}", EntityName, id);
+                return existing;
+            }
+
+            // Step 3: Use PUT to send complete updated entity to Java API
+            var updated = await _springClient.PatchAsync<Assignment, Assignment>($"{ApiEndpoint}/{id}", existing, ct);
+
+            if (updated == null)
+            {
+                throw new InvalidOperationException($"Backend returned null when updating {EntityName} {id}");
+            }
+
+            _logger.LogInformation("Successfully patched {EntityName} {Id}", EntityName, id);
+            return ApplyBusinessLogic(updated);
         }
-        
-        _logger.LogInformation("Successfully patched {EntityName} {Id}", EntityName, id);
-        return ApplyBusinessLogic(updated);
-    }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "Spring Boot error while patching {EntityName} with ID {Id}", EntityName, id);
@@ -176,7 +176,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
 
         return assignment;
     }
-    
+
     protected override void ValidateEntity(Assignment assignment)
     {
         base.ValidateEntity(assignment);
