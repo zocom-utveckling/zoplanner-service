@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -32,6 +33,12 @@ public class NotificationService
         // Debug för att kolla url.
         // Console.WriteLine($"DEBUG QueueUrl: {_queueUrl}");
 
+        if (string.IsNullOrWhiteSpace(_queueUrl))
+            throw new InvalidOperationException("QueueUrl is not configured");
+
+        if (@event == null)
+            throw new ArgumentNullException(nameof(@event));
+
         var json = JsonSerializer.Serialize(@event, _jsonOptions);
 
         var request = new SendMessageRequest
@@ -50,7 +57,8 @@ public class NotificationService
         {
             QueueUrl = _queueUrl,
             MaxNumberOfMessages = 10,
-            WaitTimeSeconds = 5
+            WaitTimeSeconds = 5,
+            VisibilityTimeout = 30
         };
 
         var response = await _sqsClient.ReceiveMessageAsync(request);
@@ -58,11 +66,13 @@ public class NotificationService
 
         foreach (var message in response.Messages)
         {
-            var assignmentEvent =
-                JsonSerializer.Deserialize<NewAssignmentEvent>(message.Body, _jsonOptions);
-
-            if (assignmentEvent != null)
+            try
             {
+                var assignmentEvent =
+                    JsonSerializer.Deserialize<NewAssignmentEvent>(message.Body, _jsonOptions)
+                    ?? throw new Exception("Deserialization returned null");
+
+
                 result.Add(assignmentEvent);
 
                 // Delete AFTER successful
@@ -70,6 +80,12 @@ public class NotificationService
                     _queueUrl,
                     message.ReceiptHandle
                 );
+            }
+
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"Failed to preocess message: {message.MessageId}: {ex.Message}");
             }
         }
         return result;

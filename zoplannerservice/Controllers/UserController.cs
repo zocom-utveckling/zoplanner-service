@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Services;
 using zoplannerservice.Models;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.WebEncoders.Testing;
 
 namespace zoplannerservice.Controllers;
 
@@ -41,7 +42,7 @@ public class UserController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while fetching all users");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -59,7 +60,7 @@ public class UserController : ControllerBase
         try
         {
             var user = await _userService.GetByIdAsync(id, ct);
-            
+
             if (user == null)
             {
                 return NotFound(new { message = $"User with ID {id} not found in database" });
@@ -75,13 +76,13 @@ public class UserController : ControllerBase
         catch (TimeoutException ex)
         {
             _logger.LogError(ex, "Timeout while fetching user {Id}", id);
-            return StatusCode(StatusCodes.Status504GatewayTimeout, 
+            return StatusCode(StatusCodes.Status504GatewayTimeout,
                 new { message = "Request timed out", details = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error for user {Id}", id);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -100,10 +101,10 @@ public class UserController : ControllerBase
         try
         {
             var createdUser = await _userService.CreateAsync(request, ct);
-            
+
             if (createdUser == null)
             {
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     new { message = "Failed to create user" });
             }
 
@@ -117,7 +118,7 @@ public class UserController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while creating user");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -135,7 +136,7 @@ public class UserController : ControllerBase
         try
         {
             var updatedUser = await _userService.UpdateAsync(id, user, ct);
-            
+
             if (updatedUser == null)
             {
                 return NotFound(new { message = $"User with ID {id} not found in database" });
@@ -151,7 +152,7 @@ public class UserController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while updating user {Id}", id);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -169,7 +170,7 @@ public class UserController : ControllerBase
         try
         {
             var deleted = await _userService.DeleteAsync(id, ct);
-            
+
             if (!deleted)
             {
                 return NotFound(new { message = $"User with ID {id} not found in database" });
@@ -185,7 +186,7 @@ public class UserController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while deleting user {Id}", id);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -210,7 +211,7 @@ public class UserController : ControllerBase
             }
 
             var user = await _userService.GetByUsernameAsync(username, ct);
-            
+
             if (user == null)
             {
                 return NotFound(new { message = $"User with username '{username}' not found in database" });
@@ -226,7 +227,7 @@ public class UserController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error for username {Username}", username);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
