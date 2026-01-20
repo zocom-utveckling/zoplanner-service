@@ -13,6 +13,9 @@ using Amazon.SQS.Model;
 using System.Text.Json.Serialization;
 using System.Runtime.Serialization;
 using zoplannerservice.Serialization;
+using DotNetEnv;
+using Amazon.Runtime;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,20 +40,38 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// AWS SQS
+
+
+// AWS SQS ---
+if (builder.Environment.IsDevelopment())
+{
+    Env.Load(".env.local");
+}
+
+var accessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
+var secretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
+
+var regionName = Environment.GetEnvironmentVariable("AWS__Region")
+                 ?? builder.Configuration["AWS:Region"];
+var queueUrl = Environment.GetEnvironmentVariable("AWS__QueueUrl")
+               ?? builder.Configuration["AWS:QueueUrl"];
+
+if (string.IsNullOrEmpty(queueUrl))
+{
+    throw new InvalidOperationException("AWS QueueUrl is not configured. Check your .env.local or appsettings.json.");
+}
+
 var awsOptions = new AWSOptions
 {
-    Region = RegionEndpoint.EUNorth1
+    Credentials = new BasicAWSCredentials(accessKey, secretKey),
+    Region = RegionEndpoint.GetBySystemName(regionName)
 };
-builder.Services.AddDefaultAWSOptions(awsOptions);
-builder.Services.AddAWSService<IAmazonSQS>();
-var queueUrl = builder.Configuration["AWS:QueueUrl"]
-    ?? throw new InvalidOperationException("AWS QueueUrl is not configured.");
-builder.Services.AddSingleton<NotificationService>(sp =>
-{
-    var sqsClient = sp.GetRequiredService<IAmazonSQS>();
-    return new NotificationService(sqsClient, queueUrl);
-});
+
+var sqsClient = new AmazonSQSClient(awsOptions.Credentials, awsOptions.Region);
+
+builder.Services.AddSingleton<NotificationService>(new NotificationService(sqsClient, queueUrl));
+
+// -----------------------------------------------------
 
 // Quick debug: peek config value
 Console.WriteLine($"Config peek SpringApi:BaseUrl = {builder.Configuration["SpringApi:BaseUrl"]}");
