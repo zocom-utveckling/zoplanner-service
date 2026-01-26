@@ -43,6 +43,10 @@ public class UserService : BaseService<User>, IUserService
         {
             throw new ValidationException("Username is required");
         }
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            throw new ValidationException("Email is required");
+        }
         if (string.IsNullOrWhiteSpace(request.Password))
         {
             throw new ValidationException("Password is required");
