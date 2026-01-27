@@ -21,13 +21,20 @@ using Amazon.Runtime;
 var builder = WebApplication.CreateBuilder(args);
 
 
-// Auth Roles
+// Auth Roles 
+// Alla kanske inte behövs / kan ändras.
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
     options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Manager"));
     options.AddPolicy("ConsultantOnly", policy => policy.RequireRole("Consultant"));
-    options.AddPolicy("AllUsers", policy => policy.RequireAuthenticatedUser());
+    options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
+
+    options.AddPolicy("StaffOnly", policy => policy.RequireRole("Admin", "Manager", "Consultant"));
+
+    // AllUsers = Ger tillgång till alla inloggade användare.
+    options.AddPolicy("AllUsers", policy =>
+        policy.RequireAuthenticatedUser());
 });
 
 
