@@ -20,6 +20,25 @@ using Amazon.Runtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+// Auth Roles 
+// Alla kanske inte behövs / kan ändras.
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Manager"));
+    options.AddPolicy("ConsultantOnly", policy => policy.RequireRole("Consultant"));
+    options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
+
+    options.AddPolicy("StaffOnly", policy => policy.RequireRole("Admin", "Manager", "Consultant"));
+
+    // AllUsers = Ger tillgång till alla inloggade användare.
+    options.AddPolicy("AllUsers", policy =>
+        policy.RequireAuthenticatedUser());
+});
+
+
+
 // Add services and configure JSON (DateOnly -> yyyy-MM-dd), Parse string to enum
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
@@ -39,8 +58,6 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API gateway applying business logic and calling Spring Boot"
     });
 });
-
-
 
 // AWS SQS ---
 if (builder.Environment.IsDevelopment())
