@@ -25,4 +25,22 @@ public interface ISpringApiClient
         where TResponse : class;
     
     Task<bool> DeleteAsync(string endpoint, CancellationToken ct = default);
+
+
+    // NEW: file upload endpoints (multipart/form-data)
+    Task<TResponse?> PostMultipartAsync<TResponse>(
+        string endpoint,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default)
+        where TResponse : class;
+
+    Task<TResponse?> PutMultipartAsync<TResponse>(
+        string endpoint,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default)
+        where TResponse : class;
 }

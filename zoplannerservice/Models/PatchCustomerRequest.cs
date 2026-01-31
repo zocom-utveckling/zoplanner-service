@@ -12,4 +12,5 @@ public class PatchCustomerRequest
 
     [MaxLength(200)]
     public string? City { get; set; }
+    public string? ImageUrl { get; set; }
 }

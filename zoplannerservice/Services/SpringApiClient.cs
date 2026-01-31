@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
@@ -323,5 +324,94 @@ public class SpringApiClient : ISpringApiClient
         }
     }
 
+    public async Task<TResponse?> PostMultipartAsync<TResponse>(
+        string endpoint,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default)
+        where TResponse : class
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(fileStream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            // "file" must match @RequestParam("file") in Spring
+            content.Add(fileContent, "file", fileName);
 
+            var uri = new Uri(_client.BaseAddress!, endpoint);
+            _logger.LogInformation("Calling Spring API POST (multipart) {Url} with file {FileName}", uri, fileName);
+
+            var response = await _client.PostAsync(endpoint, content, ct);
+            _logger.LogInformation("Spring API POST (multipart) {Url} responded {StatusCode}", uri, (int)response.StatusCode);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Spring Boot error {Status} for POST (multipart) {Url}: {ErrorBody}",
+                    (int)response.StatusCode, uri, errorBody);
+
+                throw new HttpRequestException(
+                    $"Spring Boot returned {(int)response.StatusCode} ({response.StatusCode}) for POST {endpoint}: {errorBody}");
+            }
+
+            var responseStream = await response.Content.ReadAsStreamAsync(ct);
+            return await JsonSerializer.DeserializeAsync<TResponse>(responseStream, _jsonOptions, ct);
+        }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling Spring API POST (multipart) {Endpoint}", endpoint);
+            throw;
+        }
+    }
+
+    public async Task<TResponse?> PutMultipartAsync<TResponse>(
+        string endpoint,
+        Stream fileStream,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default)
+        where TResponse : class
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(fileStream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            content.Add(fileContent, "file", fileName);
+
+            var uri = new Uri(_client.BaseAddress!, endpoint);
+            _logger.LogInformation("Calling Spring API PUT (multipart) {Url} with file {FileName}", uri, fileName);
+
+            var response = await _client.PutAsync(endpoint, content, ct);
+            _logger.LogInformation("Spring API PUT (multipart) {Url} responded {StatusCode}", uri, (int)response.StatusCode);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("Spring Boot error {Status} for PUT (multipart) {Url}: {ErrorBody}",
+                    (int)response.StatusCode, uri, errorBody);
+
+                throw new HttpRequestException(
+                    $"Spring Boot returned {(int)response.StatusCode} ({response.StatusCode}) for PUT {endpoint}: {errorBody}");
+            }
+
+            var responseStream = await response.Content.ReadAsStreamAsync(ct);
+            return await JsonSerializer.DeserializeAsync<TResponse>(responseStream, _jsonOptions, ct);
+        }
+        catch (HttpRequestException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling Spring API PUT (multipart) {Endpoint}", endpoint);
+            throw;
+        }
+    }
 }
