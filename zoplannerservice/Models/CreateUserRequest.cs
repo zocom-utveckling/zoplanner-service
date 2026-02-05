@@ -16,6 +16,8 @@ public class CreateUserRequest
     [MaxLength(200)]
     public string Email { get; set; } = string.Empty;
 
+    [MaxLength(200)]
+    public string PasswordHash { get; set; } = string.Empty; // ??
     [Required(ErrorMessage = "Password is required")]
     [MaxLength(200)]
     public string Password { get; set; } = string.Empty;

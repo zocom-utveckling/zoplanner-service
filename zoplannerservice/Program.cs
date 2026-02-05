@@ -15,9 +15,12 @@ using System.Runtime.Serialization;
 using zoplannerservice.Serialization;
 using DotNetEnv;
 using Amazon.Runtime;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
-
+DotNetEnv.Env.Load(".env.local");
 var builder = WebApplication.CreateBuilder(args);
 
 
@@ -36,6 +39,30 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AllUsers", policy =>
         policy.RequireAuthenticatedUser());
 });
+
+// JWT -------------------------
+var jwtSecret = Environment.GetEnvironmentVariable("TOKENKEY");
+// Console.WriteLine($"JWT Key: {jwtSecret}"); // För att kolla så jwt blir läst från .env.
+if (string.IsNullOrEmpty(jwtSecret))
+{
+    throw new Exception("JWT Key saknas.");
+}
+
+var key = Encoding.UTF8.GetBytes(jwtSecret);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key)
+
+        };
+    });
 
 
 
@@ -67,7 +94,6 @@ if (builder.Environment.IsDevelopment())
 
 var accessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
 var secretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
-
 var regionName = Environment.GetEnvironmentVariable("AWS__Region")
                  ?? builder.Configuration["AWS:Region"];
 var queueUrl = Environment.GetEnvironmentVariable("AWS__QueueUrl")
@@ -138,6 +164,8 @@ builder.Services.AddScoped<IBaseService<Consultant>, ConsultantService>();
 builder.Services.AddScoped<IManagerService, ManagerService>();
 builder.Services.AddScoped<IBaseService<Manager>, ManagerService>();
 
+builder.Services.AddScoped<IAuthService, AuthService>();
+
 // Add CORS (allow React and Java to connect)
 builder.Services.AddCors(options =>
 {
@@ -162,6 +190,7 @@ app.UseSwaggerUI(c =>
 
 
 app.UseCors("AllowAll");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
