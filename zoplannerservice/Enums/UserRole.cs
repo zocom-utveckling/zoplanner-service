@@ -4,6 +4,6 @@ namespace zoplannerservice.Enums.UserRole
     {
         MANAGER,
         CONSULTANT,
-        BOTH
+        BOTH,
     }
 }
