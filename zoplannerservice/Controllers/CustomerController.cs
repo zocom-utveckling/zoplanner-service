@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Services;
 using zoplannerservice.Models;
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.Services.Interfaces;
 
 namespace zoplannerservice.Controllers;
 
@@ -15,10 +16,12 @@ public class CustomerController : ControllerBase
 {
     private readonly ICustomerService _customerService;
     private readonly ILogger<CustomerController> _logger;
+    private readonly IFileService _fileService;
 
-    public CustomerController(ICustomerService customerService, ILogger<CustomerController> logger)
+    public CustomerController(ICustomerService customerService, IFileService fileService, ILogger<CustomerController> logger)
     {
         _customerService = customerService;
+        _fileService = fileService;
         _logger = logger;
     }
 
@@ -189,6 +192,81 @@ public class CustomerController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while patching customer {Id}", id);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "Backend service error", details = ex.Message });
+        }
+    }
+
+
+    /// <summary>
+    /// Upload or change customer image
+    /// </summary>
+    [HttpPost("{id:int}/image")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(Customer), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UploadImage(int id, IFormFile file, CancellationToken ct)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Image file is required" });
+
+        try
+        {
+            // Pass ALL required parameters: stream, filename, contentType
+            using var stream = file.OpenReadStream();
+            var uploaded = await _fileService.UploadAsync(
+                stream,
+                file.FileName,
+                file.ContentType,
+                ct);
+
+            var patch = new PatchCustomerRequest { ImageUrl = uploaded.Url };
+            var updated = await _customerService.PatchAsync(id, patch, ct);
+
+            if (updated == null)
+                return NotFound(new { message = $"Customer with ID {id} not found" });
+
+            return Ok(updated);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error while uploading image for customer {Id}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Service error while uploading image for customer {Id}", id);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Backend service error", details = ex.Message });
+        }
+    }
+    /// <summary>
+    /// Remove customer image (and optionally delete file in backend)
+    /// </summary>
+    [HttpDelete("{id:int}/image")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteImage(int id, CancellationToken ct)
+    {
+        try
+        {
+            var customer = await _customerService.GetByIdAsync(id, ct);
+            if (customer == null)
+                return NotFound(new { message = $"Customer with ID {id} not found" });
+
+            // If you track image by Id, call _fileService.DeleteAsync(imageId, ct) here
+
+            var patch = new PatchCustomerRequest
+            {
+                ImageUrl = null
+            };
+            await _customerService.PatchAsync(id, patch, ct);
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Service error while deleting image for customer {Id}", id);
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
