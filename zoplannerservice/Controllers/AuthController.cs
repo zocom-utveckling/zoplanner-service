@@ -25,6 +25,7 @@ public class AuthController : ControllerBase
         return Ok(new { success = true, result.User!.Username, result.User.Role, token = result.Token });
     }
 
+
     // [Authorize(Policy ="Admin")] För framtiden när auktorisering behövs.
     [HttpPost("register")]
     public async Task<IActionResult> RegisterUser(RegisterViewModel model, CancellationToken ct)
