@@ -33,6 +33,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("ConsultantOnly", policy => policy.RequireRole("Consultant"));
     options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
 
+    options.AddPolicy("ManagerConsultat", policy => policy.RequireRole("BOTH"));
+
     options.AddPolicy("StaffOnly", policy => policy.RequireRole("Admin", "Manager", "Consultant"));
 
     // AllUsers = Ger tillgång till alla inloggade användare.
