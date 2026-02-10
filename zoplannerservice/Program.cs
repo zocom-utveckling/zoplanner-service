@@ -15,6 +15,7 @@ using System.Runtime.Serialization;
 using zoplannerservice.Serialization;
 using DotNetEnv;
 using Amazon.Runtime;
+using zoplannerservice.Services.Interfaces;
 
 
 
@@ -137,6 +138,10 @@ builder.Services.AddScoped<IBaseService<Consultant>, ConsultantService>();
 
 builder.Services.AddScoped<IManagerService, ManagerService>();
 builder.Services.AddScoped<IBaseService<Manager>, ManagerService>();
+
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
+
 
 // Add CORS (allow React and Java to connect)
 builder.Services.AddCors(options =>
