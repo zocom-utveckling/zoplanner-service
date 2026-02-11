@@ -9,6 +9,7 @@ namespace zoplannerservice.Models;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum EventType
 {
-    NEW_ASSIGNMENT
+    NEW_ASSIGNMENT,
+    SCHEDULE_UPDATED
 }
 
