@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using zoplannerservice.Models;
 
@@ -85,6 +86,70 @@ public class CourseService : BaseService<Course>, ICourseService
         {
             _logger.LogWarning("No courses found for class {ClassId}", classId);
             return Enumerable.Empty<Course>();
+        }
+    }
+
+    public async Task<IEnumerable<Course>> GetByFilterAsync(long? userId, string? status, CancellationToken ct = default)
+    {
+        // Validate userId if provided
+        if (userId.HasValue && userId.Value <= 0)
+        {
+            throw new ValidationException("userId must be greater than 0");
+        }
+
+        // Build query string parameters
+        var queryParams = new List<string>();
+
+        if (userId.HasValue)
+        {
+            queryParams.Add($"userId={userId.Value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            queryParams.Add($"status={Uri.EscapeDataString(status)}");
+        }
+
+        var endpoint = ApiEndpoint; // "courses"
+
+        // Append query parameters if any exist
+        if (queryParams.Any())
+        {
+            endpoint += "?" + string.Join("&", queryParams);
+        }
+
+        _logger.LogInformation("Fetching courses with filters: userId={UserId}, status={Status}", userId, status);
+        _logger.LogInformation("Calling Spring Boot endpoint: {Endpoint}", endpoint);
+
+        try
+        {
+            var courses = await _springClient.GetAsync<List<Course>>(endpoint, ct);
+
+            if (courses == null || courses.Count == 0)
+            {
+                _logger.LogInformation("No courses returned for filters userId={UserId}, status={Status}", userId, status);
+                return Enumerable.Empty<Course>();
+            }
+
+            var processed = courses.Select(ApplyBusinessLogic).ToList();
+            _logger.LogInformation("Successfully retrieved {Count} courses with filters userId={UserId}, status={Status}", 
+                processed.Count, userId, status);
+            return processed;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while fetching courses with filters userId={UserId}, status={Status}", userId, status);
+            throw new InvalidOperationException($"Spring Boot error while fetching courses: {ex.Message}", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request timeout while fetching courses with filters userId={UserId}, status={Status}", userId, status);
+            throw new TimeoutException($"Request to Spring Boot timed out while fetching courses", ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while fetching courses with filters userId={UserId}, status={Status}", userId, status);
+            throw;
         }
     }
     
