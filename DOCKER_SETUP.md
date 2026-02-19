@@ -181,3 +181,11 @@ After the container is running:
 1. Open Swagger UI at http://localhost:5027/swagger/index.html
 2. Test the Session, Assignment, User, Customer, and Class endpoints
 3. Verify communication with Spring Boot backend
+
+
+## .env file 
+1. Create .env.local file next to .env.example
+2. Copy and paste the content from the example file
+3. Change the tokenkey
+
+
