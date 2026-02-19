@@ -188,4 +188,7 @@ After the container is running:
 2. Copy and paste the content from the example file
 3. Change the tokenkey
 
+The TOKENKEY should be 64 characters long.
+Use a random and secure string.
+
 
