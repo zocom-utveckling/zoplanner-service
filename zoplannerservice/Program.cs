@@ -83,9 +83,9 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "zoplannerservice",
+        Title = "zoplannerservice (.NET)",
         Version = "v1",
-        Description = "API gateway applying business logic and calling Spring Boot"
+        Description = ".NET API gateway applying business logic and calling Java CRUD Spring Boot"
     });
 });
 
