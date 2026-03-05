@@ -42,30 +42,30 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser());
 });
 
-// JWT -------------------------
-var jwtSecret = Environment.GetEnvironmentVariable("TOKENKEY");
-// Console.WriteLine($"JWT Key: {jwtSecret}"); // För att kolla så jwt blir läst från .env.
-if (string.IsNullOrEmpty(jwtSecret))
-{
-    throw new Exception("JWT Key saknas.");
-}
+//// JWT -------------------------
+//var jwtSecret = Environment.GetEnvironmentVariable("TOKENKEY");
+//// Console.WriteLine($"JWT Key: {jwtSecret}"); // För att kolla så jwt blir läst från .env.
+//if (string.IsNullOrEmpty(jwtSecret))
+//{
+//    throw new Exception("JWT Key saknas.");
+//}
 
-var key = Encoding.UTF8.GetBytes(jwtSecret);
+//var key = Encoding.UTF8.GetBytes(jwtSecret);
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ClockSkew = TimeSpan.Zero
+//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+//    .AddJwtBearer(options =>
+//    {
+//        options.TokenValidationParameters = new TokenValidationParameters
+//        {
+//            ValidateIssuer = false,
+//            ValidateAudience = false,
+//            ValidateLifetime = true,
+//            ValidateIssuerSigningKey = true,
+//            IssuerSigningKey = new SymmetricSecurityKey(key),
+//            ClockSkew = TimeSpan.Zero
 
-        };
-    });
+//        };
+//    });
 
 
 

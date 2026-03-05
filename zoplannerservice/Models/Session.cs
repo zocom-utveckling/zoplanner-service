@@ -21,7 +21,7 @@ namespace zoplannerservice.Models
         public string Comment { get; set; } = string.Empty;
 
         [Required]
-        public SessionLocation Location { get; set; }
+        public SessionLocation? Location { get; set; }
        
        // public Assignment? Assignment { get; set; } //
     }
