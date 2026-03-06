@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using zoplannerservice.Services;
-using zoplannerservice.Models;
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.DTO.Responses;
+using zoplannerservice.Models;
+using zoplannerservice.Services;
 
 namespace zoplannerservice.Controllers;
 
@@ -58,7 +59,7 @@ public class ConsultantController : ControllerBase
         try
         {
             var consultant = await _consultantService.GetByIdAsync(id, ct);
-            
+
             if (consultant == null)
             {
                 return NotFound(new { message = $"Consultant with ID {id} not found in database" });
@@ -74,13 +75,59 @@ public class ConsultantController : ControllerBase
         catch (TimeoutException ex)
         {
             _logger.LogError(ex, "Timeout while fetching consultant {Id}", id);
-            return StatusCode(StatusCodes.Status504GatewayTimeout, 
+            return StatusCode(StatusCodes.Status504GatewayTimeout,
                 new { message = "Request timed out", details = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error for consultant {Id}", id);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "Backend service error", details = ex.Message });
+        }
+    }
+
+
+    /// <summary>
+    /// Get consultant overview: active courses + upcoming sessions (default 30 days)
+    /// </summary>
+    [HttpGet("{id}/overview")]
+    [ProducesResponseType(typeof(ConsultantOverviewResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> GetOverview(
+        int id,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            // Optional: verify consultant exists (so we can return 404 nicely)
+            var consultant = await _consultantService.GetByIdAsync(id, ct);
+            if (consultant == null)
+            {
+                return NotFound(new { message = $"Consultant with ID {id} not found in database" });
+            }
+
+            var overview = await _consultantService.GetConsultantOverviewAsync(id, from, to);
+            return Ok(overview);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error while fetching overview for consultant {Id}", id);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogError(ex, "Timeout while fetching overview for consultant {Id}", id);
+            return StatusCode(StatusCodes.Status504GatewayTimeout,
+                new { message = "Request timed out", details = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Service error while fetching overview for consultant {Id}", id);
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }

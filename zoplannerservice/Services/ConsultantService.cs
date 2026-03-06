@@ -1,5 +1,7 @@
-using zoplannerservice.Models;
+﻿using Polly;
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.DTO.Responses;
+using zoplannerservice.Models;
 
 
 namespace zoplannerservice.Services;
@@ -92,7 +94,7 @@ public class ConsultantService : BaseService<Consultant>, IConsultantService
     }
 
 
-    // Beh�vs denna?
+    // Behövs denna?
     /// <summary>
     /// Get user by username
     /// Calls Spring Boot endpoint: GET /users/username/{username}
@@ -120,4 +122,83 @@ public class ConsultantService : BaseService<Consultant>, IConsultantService
     //        throw new InvalidOperationException($"failed to fetch {EntityName} by username from backend", ex);
     //    }
     //}
+
+    public async Task<ConsultantOverviewResponse> GetConsultantOverviewAsync(
+            int consultantId,
+            DateTime? from = null,
+            DateTime? to = null)
+    {
+        var fromDate = from ?? DateTime.UtcNow.Date;
+        var toDate = to ?? fromDate.AddDays(30);
+
+        try
+        {
+            // 1) Get assignments (It already contain Course + Sessions)
+            var assignments = await _springClient.GetAsync<List<Assignment>>("assignments");
+            if (assignments == null)
+            {
+                throw new InvalidOperationException("Backend returned null assignments");
+            }
+
+            // 2) Only keep assignments for this consultant 
+            var consultantAssignments = assignments
+                .Where(a => a.ConsultantId == consultantId)
+                .ToList();
+
+            // 3) Build sessions from assignment.Sessions (flatten)
+            //    and filter by from/to
+            var sessionRows = consultantAssignments
+                .Where(a => a.Sessions != null)
+                .SelectMany(a => a.Sessions.Select(s => new { Assignment = a, Session = s }))
+                .Where(x => x.Session.TimeStart >= fromDate && x.Session.TimeStart <= toDate)
+                .ToList();
+
+            // 4) ActiveCourses = courses that have sessions in the window
+            var activeCourses = sessionRows
+                .Where(x => x.Assignment.Course != null)
+                .Select(x => x.Assignment.Course)
+                .GroupBy(c => c.Id)
+                .Select(g => g.First())
+                .Select(c => new ActiveCourseDto
+                {
+                    CourseId = c.Id,
+                    Name = c.Name,
+                    DateStart = c.DateStart,
+                    DateEnd = c.DateEnd
+                })
+                .ToList();
+
+            // 5) Map sessions to DTO (we know assignment + course here)
+            var sessionDtos = sessionRows
+                .Where(x => x.Assignment.Course != null)
+                .Select(x => new SessionDto
+                {
+                    SessionId = (int)x.Session.Id,
+                    TimeStart = x.Session.TimeStart,
+                    TimeEnd = x.Session.TimeEnd,
+                    Location = x.Session.Location.ToString(),
+                    Comment = x.Session.Comment,
+                    AssignmentId = (int)x.Assignment.Id,
+                    CourseId = (int)x.Assignment.Course.Id,
+                    CourseName = x.Assignment.Course.Name
+                })
+                .ToList();
+
+            return new ConsultantOverviewResponse
+            {
+                ConsultantId = consultantId,
+                ActiveCourses = activeCourses,
+                Sessions = sessionDtos
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while fetching consultant overview");
+            throw new InvalidOperationException("Failed to fetch consultant overview from backend", ex);
+        }
+    }
+
+
 }
+
+

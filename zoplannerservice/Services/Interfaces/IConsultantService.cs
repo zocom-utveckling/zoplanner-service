@@ -1,3 +1,4 @@
+using zoplannerservice.DTO.Responses;
 using zoplannerservice.Models;
 
 namespace zoplannerservice.Services;
@@ -15,4 +16,13 @@ public interface IConsultantService : IBaseService<Consultant>
     /// <summary>
     /// Get user by username
     /// </summary>
+
+
+    Task<ConsultantOverviewResponse> GetConsultantOverviewAsync(
+    int consultantId,
+    DateTime? from = null,
+    DateTime? to = null
+);
+
 }
+
