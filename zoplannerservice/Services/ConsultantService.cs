@@ -198,6 +198,94 @@ public class ConsultantService : BaseService<Consultant>, IConsultantService
         }
     }
 
+    // TODO: Implement search with filters (consultantId, courseId, city, location, from/to)
+    public async Task<List<ScheduleSearchRowDto>> SearchScheduleAsync(
+    long? consultantId = null,
+    long? courseId = null,
+    string? city = null,
+    string? location = null,
+    DateTime? from = null,
+    DateTime? to = null)
+    {
+        // Step 1 — Default date window
+        var fromDate = from ?? DateTime.UtcNow.Date;
+        var toDate = to ?? fromDate.AddDays(30);
+
+        // Step 2 — Fetch data from Spring Boot
+        var assignments = await _springClient.GetAsync<List<Assignment>>("assignments");
+        var consultants = await _springClient.GetAsync<List<Consultant>>("consultants");
+
+        if (assignments == null)
+        {
+            throw new InvalidOperationException("Backend returned null assignments");
+        }
+
+        if (consultants == null)
+        {
+            throw new InvalidOperationException("Backend returned null consultants");
+        }
+
+        // Step 3 — Build consultantId → city lookup
+        var consultantCityLookup = consultants
+            .Where(c => c.Id != null)
+            .ToDictionary(c => c.Id, c => c.City);
+
+        // Step 4 — Flatten assignments + sessions into schedule rows
+        var rows = assignments
+            .Where(a => a.Sessions != null && a.Course != null)
+            .SelectMany(a => a.Sessions.Select(s => new ScheduleSearchRowDto
+            {
+                ConsultantId = a.ConsultantId ?? 0,
+
+                City = a.ConsultantId.HasValue && consultantCityLookup.ContainsKey(a.ConsultantId.Value)
+                    ? consultantCityLookup[a.ConsultantId.Value]
+                    : null,
+
+                CourseId = a.Course.Id,
+                CourseName = a.Course.Name,
+
+                SessionId = s.Id,
+                TimeStart = s.TimeStart,
+                TimeEnd = s.TimeEnd,
+                Location = s.Location?.ToString(),
+                Comment = s.Comment
+            }))
+            .Where(r => r.TimeStart >= fromDate && r.TimeStart <= toDate)
+            .ToList();
+
+        if (consultantId.HasValue)
+        {
+            rows = rows
+                .Where(r => r.ConsultantId == consultantId.Value)
+                .ToList();
+        }
+
+        if (courseId.HasValue)
+        {
+            rows = rows
+                .Where(r => r.CourseId == courseId.Value)
+                .ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(city))
+        {
+            rows = rows
+                .Where(r => !string.IsNullOrWhiteSpace(r.City) &&
+                            r.City.Contains(city, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            rows = rows
+                .Where(r => !string.IsNullOrWhiteSpace(r.Location) &&
+                            r.Location.Equals(location, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        return rows;
+    }
+
 
 }
 

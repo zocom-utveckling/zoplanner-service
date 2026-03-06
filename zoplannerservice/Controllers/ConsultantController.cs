@@ -4,6 +4,7 @@ using zoplannerservice.DTO.Responses;
 using zoplannerservice.Models;
 using zoplannerservice.Services;
 
+
 namespace zoplannerservice.Controllers;
 
 /// <summary>
@@ -41,7 +42,7 @@ public class ConsultantController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while fetching all consultants");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -146,10 +147,10 @@ public class ConsultantController : ControllerBase
         try
         {
             var createdConsultant = await _consultantService.CreateAsync(request, ct);
-            
+
             if (createdConsultant == null)
             {
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     new { message = "Failed to create consultant" });
             }
 
@@ -163,7 +164,7 @@ public class ConsultantController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while creating consultant");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -181,7 +182,7 @@ public class ConsultantController : ControllerBase
         try
         {
             var updatedConsultant = await _consultantService.UpdateAsync(id, consultant, ct);
-            
+
             if (updatedConsultant == null)
             {
                 return NotFound(new { message = $"Consultant with ID {id} not found in database" });
@@ -197,7 +198,7 @@ public class ConsultantController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while updating consultant {Id}", id);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -215,7 +216,7 @@ public class ConsultantController : ControllerBase
         try
         {
             var deleted = await _consultantService.DeleteAsync(id, ct);
-            
+
             if (!deleted)
             {
                 return NotFound(new { message = $"Consultant with ID {id} not found in database" });
@@ -231,7 +232,7 @@ public class ConsultantController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while deleting consultant {Id}", id);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
@@ -256,7 +257,7 @@ public class ConsultantController : ControllerBase
     //        }
 
     //        var user = await _userService.GetByConsultantnameAsync(username, ct);
-            
+
     //        if (user == null)
     //        {
     //            return NotFound(new { message = $"Consultant with username '{username}' not found in database" });
@@ -276,4 +277,42 @@ public class ConsultantController : ControllerBase
     //            new { message = "Backend service error", details = ex.Message });
     //    }
     //}
+
+
+    [HttpGet("search-schedule")]
+    [ProducesResponseType(typeof(List<ScheduleSearchRowDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> SearchSchedule(
+    [FromQuery] long? consultantId = null,
+    [FromQuery] long? courseId = null,
+    [FromQuery] string? city = null,
+    [FromQuery] string? location = null,
+    [FromQuery] DateTime? from = null,
+    [FromQuery] DateTime? to = null)
+    {
+        try
+        {
+            var result = await _consultantService.SearchScheduleAsync(
+                consultantId,
+                courseId,
+                city,
+                location,
+                from,
+                to);
+
+            return Ok(result);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error while searching consultant schedule");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Service error while searching consultant schedule");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "Backend service error", details = ex.Message });
+        }
+    }
 }
