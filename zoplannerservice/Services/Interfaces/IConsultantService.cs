@@ -24,5 +24,14 @@ public interface IConsultantService : IBaseService<Consultant>
     DateTime? to = null
 );
 
+    Task<List<ScheduleSearchRowDto>> SearchScheduleAsync(
+    long? consultantId = null,
+    long? courseId = null,
+    string? city = null,
+    string? location = null,
+    DateTime? from = null,
+    DateTime? to = null
+);
+
 }
 
