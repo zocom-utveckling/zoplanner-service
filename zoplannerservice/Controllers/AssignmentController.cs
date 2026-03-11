@@ -14,7 +14,9 @@ namespace zoplannerservice.Controllers;
 
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/assignments")]
+//[Route("api/[controller]")]
+
 public class AssignmentController : ControllerBase
 {
     private readonly IAssignmentService _assignmentService;
@@ -89,47 +91,48 @@ public class AssignmentController : ControllerBase
     /// Get sessions for a specific assignment
     /// GET /api/assignment/{id}/sessions
     /// </summary>
-    [HttpGet("{id}/sessions")]
-    [ProducesResponseType(typeof(IEnumerable<Session>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    //[HttpGet("{id}/sessions")]
+    //[ProducesResponseType(typeof(IEnumerable<Session>), StatusCodes.Status200OK)]
+    //[ProducesResponseType(StatusCodes.Status404NotFound)]
+    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 
-    public async Task<ActionResult<IEnumerable<Session>>> GetSessionsByAssignmentId(long id, CancellationToken ct)
-    {
-        try
-        {
-            var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
+    //public async Task<ActionResult<IEnumerable<Session>>> GetSessionsByAssignmentId(long id, CancellationToken ct)
+    //{
+    //    try
+    //    {
+    //        var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
             
-            var sessions = await _springClient.GetAsync<IEnumerable<Session>>($"assignments/{id}/sessions", ct);
-            return Ok(sessions ?? Enumerable.Empty<Session>());
-        }
-        catch (ValidationException ex)
-        {
-            _logger.LogWarning(ex, "Validation error for assignment {Id}", id);
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Error getting sessions for assignment {Id}", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Error getting sessions for assignment", details = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Get assignments by Consultant ID
-    /// </summary>
+    //        var sessions = await _springClient.GetAsync<IEnumerable<Session>>($"assignments/{id}/sessions", ct);
+    //        return Ok(sessions ?? Enumerable.Empty<Session>());
+    //    }
+    //    catch (ValidationException ex)
+    //    {
+    //        _logger.LogWarning(ex, "Validation error for assignment {Id}", id);
+    //        return BadRequest(new { message = ex.Message });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogWarning(ex, "Error getting sessions for assignment {Id}", id);
+    //        return StatusCode(StatusCodes.Status500InternalServerError,
+    //            new { message = "Error getting sessions for assignment", details = ex.Message });
+    //    }
+    //}
 
     [HttpGet("consultant/{consultantId}")]
     [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<IEnumerable<Assignment>>> GetByConsultantId(long consultantId, CancellationToken ct)
+    public async Task<ActionResult<IEnumerable<Assignment>>> GetByConsultantId(
+    long consultantId,
+    [FromQuery] bool? published,
+    CancellationToken ct)
     {
         try
         {
-            var assignments = await _assignmentService.GetByConsultantIdAsync(consultantId, ct);
+            var assignments = await _assignmentService
+                .GetAssignmentsByConsultantAsync(consultantId, published, ct);
+
             return Ok(assignments);
         }
         catch (ValidationException ex)
@@ -144,6 +147,45 @@ public class AssignmentController : ControllerBase
                 new { message = "Error getting assignments by consultant", details = ex.Message });
         }
     }
+
+    [HttpGet("visibility")]
+    public async Task<ActionResult<IEnumerable<Assignment>>> GetByVisibility(
+    [FromQuery] bool published,
+    CancellationToken ct)
+    {
+        var assignments = await _assignmentService
+            .GetAssignmentsByVisibilityAsync(published, ct);
+
+        return Ok(assignments);
+    }
+
+    /// <summary>
+    /// Get assignments by Consultant ID
+    /// </summary>
+
+    //[HttpGet("consultant/{consultantId}")]
+    //[ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
+    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    //public async Task<ActionResult<IEnumerable<Assignment>>> GetByConsultantId(long consultantId, CancellationToken ct)
+    //{
+    //    try
+    //    {
+    //        var assignments = await _assignmentService.GetByConsultantIdAsync(consultantId, ct);
+    //        return Ok(assignments);
+    //    }
+    //    catch (ValidationException ex)
+    //    {
+    //        _logger.LogWarning(ex, "Validation error for consultant {ConsultantId}", consultantId);
+    //        return BadRequest(new { message = ex.Message });
+    //    }
+    //    catch (InvalidOperationException ex)
+    //    {
+    //        _logger.LogError(ex, "Service error for consultant {ConsultantId}", consultantId);
+    //        return StatusCode(StatusCodes.Status500InternalServerError,
+    //            new { message = "Error getting assignments by consultant", details = ex.Message });
+    //    }
+    //}
 
     /// <summary>
     /// Create a new assignment
@@ -280,4 +322,5 @@ public class AssignmentController : ControllerBase
                 new { message = "Backend service error", details = ex.Message });
         }
     }
+
 }
