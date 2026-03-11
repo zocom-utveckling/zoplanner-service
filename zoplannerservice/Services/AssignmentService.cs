@@ -162,6 +162,26 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
     }
 
+    public async Task<IEnumerable<Assignment>> GetAssignmentsByConsultantAsync(long consultantId,bool? published,CancellationToken ct)
+    {
+        string url = $"assignments/consultant/{consultantId}";
+
+        if (published.HasValue)
+            url += $"?published={published.Value}";
+
+        var assignments = await _springClient.GetAsync<IEnumerable<Assignment>>(url, ct);
+
+        return assignments ?? Enumerable.Empty<Assignment>();
+    }
+    public async Task<IEnumerable<Assignment>> GetAssignmentsByVisibilityAsync(
+    bool published,
+    CancellationToken ct)
+    {
+        var assignments = await _springClient
+            .GetAsync<IEnumerable<Assignment>>($"assignments/visibility?published={published}", ct);
+
+        return assignments ?? Enumerable.Empty<Assignment>();
+    }
 
 
 
