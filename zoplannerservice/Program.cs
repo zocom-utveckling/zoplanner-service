@@ -24,6 +24,8 @@ DotNetEnv.Env.Load(".env.local");
 var builder = WebApplication.CreateBuilder(args);
 
 
+//add some comment
+
 // Auth Roles 
 // Alla kanske inte behövs / kan ändras.
 builder.Services.AddAuthorization(options =>
