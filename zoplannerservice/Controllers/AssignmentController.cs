@@ -14,7 +14,7 @@ namespace zoplannerservice.Controllers;
 
 
 [ApiController]
-[Route("api/assignments")]
+[Route("api/Assignments")]
 //[Route("api/[controller]")]
 
 public class AssignmentController : ControllerBase
@@ -33,7 +33,7 @@ public class AssignmentController : ControllerBase
 
     /// <summary>
     /// Get all assignments
-    /// GET /api/assignment
+    /// GET /api/Assignment
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
@@ -53,7 +53,7 @@ public class AssignmentController : ControllerBase
     }
 
     /// <summary>
-    /// Get assignment by ID
+    /// Get Assignment by ID
     /// </summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(Assignment), StatusCodes.Status200OK)]

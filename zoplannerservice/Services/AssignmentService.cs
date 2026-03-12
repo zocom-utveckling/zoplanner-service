@@ -15,7 +15,7 @@ namespace zoplannerservice.Services;
 public class AssignmentService : BaseService<Assignment>, IAssignmentService
 {
     protected override string EntityName => "Assignment";
-    protected override string ApiEndpoint => "assignments";
+    protected override string ApiEndpoint => "Assignments";
 
     public AssignmentService(ISpringApiClient springClient, ILogger<AssignmentService> logger)
         : base(springClient, logger)
