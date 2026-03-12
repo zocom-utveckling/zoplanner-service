@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -25,9 +26,19 @@ public class NotificationController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("send")]
+    [HttpPost("send-new-assignment")]
     public async Task<IActionResult> Send([FromBody] NewAssignmentEvent @event)
     {
+        var json = JsonSerializer.Serialize(
+            @event,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false
+            });
+
+        _logger.LogInformation("NEW_ASSIGNMENT JSON payload: {Json}", json);
+
         _logger.LogInformation(
             "Received NEW_ASSIGNMENT notification request. TeacherId={TeacherId}, AssignmentId={AssignmentId}",
             @event.TeacherId,

@@ -19,6 +19,7 @@ using zoplannerservice.Models;
 using zoplannerservice.Serialization;
 using zoplannerservice.Services;
 using zoplannerservice.Services.Interfaces;
+using zoplannerservice.Swagger;
 
 
 DotNetEnv.Env.Load(".env.local");
@@ -89,6 +90,7 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = ".NET API gateway applying business logic and calling Java CRUD Spring Boot"
     });
+    c.OperationFilter<NotificationExamplesOperationFilter>();
 });
 
 // AWS SQS ---
