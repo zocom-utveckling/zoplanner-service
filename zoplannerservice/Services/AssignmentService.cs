@@ -15,7 +15,7 @@ namespace zoplannerservice.Services;
 public class AssignmentService : BaseService<Assignment>, IAssignmentService
 {
     protected override string EntityName => "Assignment";
-    protected override string ApiEndpoint => "Assignments";
+    protected override string ApiEndpoint => "assignments";
 
     public AssignmentService(ISpringApiClient springClient, ILogger<AssignmentService> logger)
         : base(springClient, logger)
@@ -164,7 +164,8 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
 
     public async Task<IEnumerable<Assignment>> GetAssignmentsByConsultantAsync(long consultantId,bool? published,CancellationToken ct)
     {
-        string url = $"assignments/consultant/{consultantId}";
+        //string url = $"assignments/consultant/{consultantId}";
+        string url = $"{ApiEndpoint}/consultant/{consultantId}";
 
         if (published.HasValue)
             url += $"?published={published.Value}";
@@ -178,7 +179,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
     CancellationToken ct)
     {
         var assignments = await _springClient
-            .GetAsync<IEnumerable<Assignment>>($"assignments/visibility?published={published}", ct);
+            .GetAsync<IEnumerable<Assignment>>($"{ApiEndpoint}/visibility?published={published}", ct);
 
         return assignments ?? Enumerable.Empty<Assignment>();
     }

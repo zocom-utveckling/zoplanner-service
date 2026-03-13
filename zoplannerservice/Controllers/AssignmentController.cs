@@ -14,8 +14,8 @@ namespace zoplannerservice.Controllers;
 
 
 [ApiController]
-[Route("api/Assignments")]
-//[Route("api/[controller]")]
+//[Route("api/Assignments")]
+[Route("api/[controller]")]
 
 public class AssignmentController : ControllerBase
 {
