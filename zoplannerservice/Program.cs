@@ -1,23 +1,25 @@
-using zoplannerservice.Services;
-using zoplannerservice.Models;
+using Amazon;
+using Amazon.Extensions.NETCore.Setup;
+using Amazon.Runtime;
+using Amazon.SQS;
+using Amazon.SQS.Model;
+using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
 using System.Net.Http;
-using Microsoft.OpenApi.Models;
-using Amazon.SQS;
-using Microsoft.Extensions.DependencyInjection;
-using Amazon;
-using Amazon.Extensions.NETCore.Setup;
-using Amazon.SQS.Model;
-using System.Text.Json.Serialization;
 using System.Runtime.Serialization;
-using zoplannerservice.Serialization;
-using DotNetEnv;
-using Amazon.Runtime;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json.Serialization;
+using zoplannerservice.Models;
+using zoplannerservice.Serialization;
+using zoplannerservice.Services;
+using zoplannerservice.Services.Interfaces;
+using zoplannerservice.Swagger;
 
 
 DotNetEnv.Env.Load(".env.local");
@@ -75,6 +77,7 @@ builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     o.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    o.JsonSerializerOptions.Converters.Add(new FormatTimeSpan());
     o.JsonSerializerOptions.Converters.Add(new FormatDateTime());
 
 });
@@ -83,10 +86,11 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "zoplannerservice",
+        Title = "zoplannerservice (.NET)",
         Version = "v1",
-        Description = "API gateway applying business logic and calling Spring Boot"
+        Description = ".NET API gateway applying business logic and calling Java CRUD Spring Boot"
     });
+    c.OperationFilter<NotificationExamplesOperationFilter>();
 });
 
 // AWS SQS ---
@@ -140,7 +144,7 @@ builder.Services.AddHttpClient<ISpringApiClient, SpringApiClient>((serviceProvid
 })
 .AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryAsync(3, retryAttempt =>
     TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-.AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+.AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(200)));
 
 // Register services
 builder.Services.AddScoped<ICustomerService, CustomerService>();
@@ -168,6 +172,8 @@ builder.Services.AddScoped<IManagerService, ManagerService>();
 builder.Services.AddScoped<IBaseService<Manager>, ManagerService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<IActivityService, ActivityService>();
 
 // Add CORS (allow React and Java to connect)
 builder.Services.AddCors(options =>

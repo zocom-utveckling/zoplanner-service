@@ -10,6 +10,8 @@ namespace zoplannerservice.Models;
 public enum EventType
 {
     NEW_ASSIGNMENT,
-    SCHEDULE_UPDATED
+    SCHEDULE_UPDATED,
+    DIRECT_MESSAGE,
+    SCHEDULE_CALENDAR
 }
 
