@@ -1,22 +1,19 @@
 using System.ComponentModel.DataAnnotations;
+
 namespace zoplannerservice.Models;
 
-/// <summary>
-/// DTO for creating a new assignment
-///    </summary>
 public class CreateAssignmentRequest
 {
+    public long? ConsultantId { get; set; }   // ❌ ta bort Required
 
-    [Required(ErrorMessage = "ConsultantId is required")]
-    public long? ConsultantId { get; set; }
+    public long? ManagerId { get; set; }      // ✅ lägg till
 
     [Required(ErrorMessage = "DateStart is required")]
-    public DateOnly? DateStart { get; set; }  
+    public DateOnly? DateStart { get; set; }
 
     [Required(ErrorMessage = "DateEnd is required")]
     public DateOnly? DateEnd { get; set; }
 
     [Required]
     public long? CourseId { get; set; }
-
 }

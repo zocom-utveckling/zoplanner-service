@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http.HttpResults;
 using zoplannerservice.Models;
 
 namespace zoplannerservice.Services;
@@ -8,10 +7,6 @@ namespace zoplannerservice.Services;
 /// Assignment service - inherits all CRUD operations from BaseService
 /// Add assignment-specific business logic here
 /// </summary>
-
-//TODO: Implement method that retrieves active assignments between week x to y
-
-
 public class AssignmentService : BaseService<Assignment>, IAssignmentService
 {
     protected override string EntityName => "Assignment";
@@ -33,20 +28,27 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         {
             throw new ValidationException("DateStart is required");
         }
+
         if (request.DateEnd == null)
         {
             throw new ValidationException("DateEnd is required");
         }
 
+        if (request.CourseId == null)
+        {
+            throw new ValidationException("CourseId is required");
+        }
+
         try
         {
-            // Send only the fields without ID to Spring Boot
             var created = await _springClient.PostAsync<CreateAssignmentRequest, Assignment>(ApiEndpoint, request, ct);
+
             if (created == null)
             {
                 throw new InvalidOperationException("Backend returned null when creating Assignment");
             }
-            created.CourseId = (int)request.CourseId;
+
+            created.CourseId = request.CourseId.Value;
             return ApplyBusinessLogic(created);
         }
         catch (HttpRequestException ex)
@@ -57,32 +59,36 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error while creating {EntityName}", EntityName);
-            throw new InvalidOperationException($"Failed to create {EntityName}", ex);
+            throw new InvalidOperationException($"Failed to create {EntityName}: {ex.Message}", ex);
         }
     }
 
-
-
-
     public async Task<IEnumerable<Assignment>> GetByConsultantIdAsync(long consultantId, CancellationToken ct = default)
     {
-        if (consultantId < 0)
+        if (consultantId <= 0)
         {
             throw new ValidationException("Consultant ID must be greater than 0");
         }
 
         try
         {
-            var assignments = await _springClient.GetAsync<IEnumerable<Assignment>>($"{ApiEndpoint}/consultant/{consultantId}", ct);
-            return assignments?.Select(a => ApplyBusinessLogic(a)) ?? Enumerable.Empty<Assignment>();
+            var assignments = await _springClient.GetAsync<IEnumerable<Assignment>>(
+                $"{ApiEndpoint}/consultant/{consultantId}",
+                ct);
+
+            return assignments?.Select(ApplyBusinessLogic) ?? Enumerable.Empty<Assignment>();
         }
         catch (HttpRequestException ex) when (ex.Message.Contains("404"))
         {
             _logger.LogWarning("No assignments found for consultant {ConsultantId}", consultantId);
             return Enumerable.Empty<Assignment>();
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while getting assignments for consultant {ConsultantId}", consultantId);
+            throw new InvalidOperationException($"Spring Boot error while getting assignments for consultant {consultantId}: {ex.Message}", ex);
+        }
     }
-
 
     public async Task<Assignment?> PatchAsync(long id, PatchAssignmentRequest request, CancellationToken ct = default)
     {
@@ -92,7 +98,6 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         if (request == null)
             throw new ValidationException("Patch data is required");
 
-        // Ensure at least one field is provided
         if (request.ConsultantId is null && request.DateStart is null && request.DateEnd is null)
         {
             throw new ValidationException("At least one field must be provided for patch");
@@ -100,7 +105,6 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
 
         try
         {
-            // Get existing assignment from Java API
             var existing = await GetByIdAsync((int)id, ct);
             if (existing == null)
             {
@@ -108,8 +112,6 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
             }
 
             bool hasChanges = false;
-
-
 
             if (request.ConsultantId.HasValue && existing.ConsultantId != request.ConsultantId.Value)
             {
@@ -129,23 +131,21 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
                 hasChanges = true;
             }
 
-
-
-            // Validate dates after merge
             if (existing.DateStart.HasValue && existing.DateEnd.HasValue && existing.DateEnd.Value < existing.DateStart.Value)
             {
                 throw new ValidationException("End date must be after start date");
             }
 
-            // If no actual changes, return existing
             if (!hasChanges)
             {
                 _logger.LogInformation("No changes detected for {EntityName} {Id}", EntityName, id);
                 return existing;
             }
 
-            // Step 3: Use PUT to send complete updated entity to Java API
-            var updated = await _springClient.PatchAsync<Assignment, Assignment>($"{ApiEndpoint}/{id}", existing, ct);
+            var updated = await _springClient.PatchAsync<Assignment, Assignment>(
+                $"{ApiEndpoint}/{id}",
+                existing,
+                ct);
 
             if (updated == null)
             {
@@ -162,30 +162,92 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
         }
     }
 
+    public async Task<IEnumerable<Assignment>> GetByVisibilityAsync(bool published, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _springClient.GetAsync<IEnumerable<Assignment>>(
+                $"{ApiEndpoint}/visibility?published={published.ToString().ToLower()}",
+                ct);
 
+            return result?.Select(ApplyBusinessLogic) ?? Enumerable.Empty<Assignment>();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while getting assignments by visibility");
+            throw new InvalidOperationException($"Spring Boot error while getting assignments by visibility: {ex.Message}", ex);
+        }
+    }
 
+    public async Task<IEnumerable<Assignment>> GetByConsultantIdAndVisibilityAsync(
+        long consultantId,
+        bool? published,
+        CancellationToken ct = default)
+    {
+        if (consultantId <= 0)
+        {
+            throw new ValidationException("Consultant ID must be greater than 0");
+        }
 
-    /// <summary>
-    /// Override to add assignment-specific business logic
-    /// Example: validate dates, check conflicts, calculate status
-    /// </summary>
+        try
+        {
+            var endpoint = published.HasValue
+                ? $"{ApiEndpoint}/consultant/{consultantId}?published={published.Value.ToString().ToLower()}"
+                : $"{ApiEndpoint}/consultant/{consultantId}";
+
+            var result = await _springClient.GetAsync<IEnumerable<Assignment>>(endpoint, ct);
+
+            return result?.Select(ApplyBusinessLogic) ?? Enumerable.Empty<Assignment>();
+        }
+        catch (HttpRequestException ex) when (ex.Message.Contains("404"))
+        {
+            _logger.LogWarning("No assignments found for consultant {ConsultantId}", consultantId);
+            return Enumerable.Empty<Assignment>();
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while getting assignments for consultant {ConsultantId} with visibility", consultantId);
+            throw new InvalidOperationException($"Spring Boot error while getting assignments for consultant {consultantId}: {ex.Message}", ex);
+        }
+    }
+
+    public async Task<Assignment?> PublishAsync(long id, CancellationToken ct = default)
+    {
+        if (id <= 0)
+        {
+            throw new ValidationException("Assignment ID must be greater than 0");
+        }
+
+        try
+        {
+            return await _springClient.PutAsync<object, Assignment>(
+                $"{ApiEndpoint}/{id}/publish",
+                new { },
+                ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while publishing {EntityName} {Id}", EntityName, id);
+            throw new InvalidOperationException($"Spring Boot error while publishing {EntityName} {id}: {ex.Message}", ex);
+        }
+    }
+
     protected override Assignment ApplyBusinessLogic(Assignment assignment)
     {
-        // Add assignment-specific transformations here
-        // For example: calculate status, validate deadlines
-
         return assignment;
     }
 
     protected override void ValidateEntity(Assignment assignment)
     {
         base.ValidateEntity(assignment);
+
         if (assignment.DateStart == default)
             throw new ValidationException("Start date is required");
+
         if (assignment.DateEnd == default)
             throw new ValidationException("End date is required");
+
         if (assignment.DateEnd < assignment.DateStart)
             throw new ValidationException("End date must be after start date");
     }
 }
-
