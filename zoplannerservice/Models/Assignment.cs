@@ -8,7 +8,6 @@ namespace zoplannerservice.Models
 
         public long Id { get; set; }
 
-        [Required]
         public long? ConsultantId { get; set; }
 
         [Required]
