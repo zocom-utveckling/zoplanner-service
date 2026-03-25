@@ -8,4 +8,9 @@ public interface ICourseService : IBaseService<Course>
 
     Task<IEnumerable<Course>> GetByClassIdAsync(long classId, CancellationToken ct = default);
     Task<Course?> PatchAsync(long id, PatchCourseRequest request, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Get courses filtered by userId and/or status
+    /// </summary>
+    Task<IEnumerable<Course>> GetByFilterAsync(long? userId, string? status, CancellationToken ct = default);
 }

@@ -30,21 +30,34 @@ public class CourseController : ControllerBase
 
 
     /// <summary>
-    /// Get all courses
+    /// Get all courses with optional filtering by userId and/or status
     /// GET /api/course
+    /// GET /api/course?userId=123
+    /// GET /api/course?status=ACTIVE
+    /// GET /api/course?userId=123&status=ACTIVE
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<Course>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Course>>> GetAll(CancellationToken ct)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<Course>>> GetAll(
+        [FromQuery] long? userId,
+        [FromQuery] string? status,
+        CancellationToken ct)
     {
         try
         {
-        var courses = await _courseService.GetAllSync(ct);
-        return Ok(courses);
-       }
+            var courses = await _courseService.GetByFilterAsync(userId, status, ct);
+            return Ok(courses);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error while fetching courses");
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error while fetching all courses");
+            _logger.LogError(ex, "Unexpected error while fetching courses");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Unexpected error occurred", details = ex.Message });
         }
