@@ -21,6 +21,6 @@ public class PlannerActivity
     [JsonConverter(typeof(FormatDateTime))]
     public DateTime CreatedAt { get; set; }
 
-    [JsonPropertyName("userid")]
+    [JsonPropertyName("userId")]
     public long UserId { get; set; }
 }
