@@ -234,6 +234,7 @@ public class AssignmentController : ControllerBase
             }
 
             assignment.ConsultantId = request.ConsultantId;
+            assignment.ManagerId = request.ManagerId;
             assignment.DateStart = request.DateStart;
             assignment.DateEnd = request.DateEnd;
             assignment.CourseId = assignment.Course.Id;

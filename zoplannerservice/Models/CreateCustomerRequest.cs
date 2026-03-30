@@ -9,12 +9,10 @@ namespace zoplannerservice.Models;
 public class CreateCustomerRequest
 {
     [Required]
-    [MaxLength(200)]
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; set; } = "";
+
+    public string? City { get; set; }
 
     [Required]
-    [MaxLength(200)]
-    public string City { get; set; } = string.Empty;
-
     public long ManagerId { get; set; }
 }
