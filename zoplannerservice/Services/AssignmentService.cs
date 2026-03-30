@@ -46,7 +46,7 @@ public class AssignmentService : BaseService<Assignment>, IAssignmentService
             {
                 throw new InvalidOperationException("Backend returned null when creating Assignment");
             }
-            created.CourseId = (int)request.CourseId;
+            created.CourseId = request.CourseId;
             return ApplyBusinessLogic(created);
         }
         catch (HttpRequestException ex)

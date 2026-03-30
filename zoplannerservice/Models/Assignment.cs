@@ -18,7 +18,7 @@ namespace zoplannerservice.Models
         [Required]
         public DateOnly? DateEnd { get; set; }
 
-        public long CourseId { get; set; }
+        public long? CourseId { get; set; }
         public Course? Course { get; set; }
 
         public List<Session>? Sessions { get; set; } 

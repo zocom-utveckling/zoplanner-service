@@ -6,9 +6,10 @@ namespace zoplannerservice.Models;
 ///    </summary>
 public class CreateAssignmentRequest
 {
-
-    [Required(ErrorMessage = "ConsultantId is required")]
     public long? ConsultantId { get; set; }
+
+    [Required(ErrorMessage = "ManagerId is required")]
+    public long? ManagerId { get; set; }
 
     [Required(ErrorMessage = "DateStart is required")]
     public DateOnly? DateStart { get; set; }  
@@ -16,7 +17,6 @@ public class CreateAssignmentRequest
     [Required(ErrorMessage = "DateEnd is required")]
     public DateOnly? DateEnd { get; set; }
 
-    [Required]
     public long? CourseId { get; set; }
 
 }

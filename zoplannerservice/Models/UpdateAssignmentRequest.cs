@@ -10,6 +10,7 @@ public class UpdateAssignmentRequest
 
 
     public long? ConsultantId { get; set; }
+    public long? ManagerId { get; set; }
 
     [Required(ErrorMessage = "DateStart is required")]
     public DateOnly? DateStart { get; set; }
