@@ -1,0 +1,53 @@
+name: .NET CI/CD
+
+on:
+  push:
+    branches: [ dev, main ]
+  pull_request:
+    branches: [ dev, main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore zoplanner-service.sln
+
+      - name: Build
+        run: dotnet build zoplanner-service.sln --no-restore --configuration Release
+
+      - name: Run tests
+        run: dotnet test zoplanner-service.sln --no-build --configuration Release --verbosity normal
+
+  publish-artifact:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish application
+        run: dotnet publish zoplannerservice/zoplannerservice.csproj -c Release -o ./publish
+
+      - name: Upload published app
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoplannerservice-publish
+          path: ./publish
