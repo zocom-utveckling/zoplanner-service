@@ -175,6 +175,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<IActivityService, ActivityService>();
 
+builder.Services.AddScoped<IFileService, FileService>();
+
 // Add CORS (allow React and Java to connect)
 builder.Services.AddCors(options =>
 {
