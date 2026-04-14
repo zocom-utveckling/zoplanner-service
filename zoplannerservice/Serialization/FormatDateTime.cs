@@ -5,9 +5,6 @@ using System.Globalization;
 
 namespace zoplannerservice.Serialization
 {
-    /// <summary>
-    /// Sets the DateTime format in JSON body to yyyy-MM-dd HH:mm
-    /// </summary>
     public class FormatDateTime : JsonConverter<DateTime>
     {
         private static readonly string[] AcceptedFormats = new[]
@@ -20,7 +17,7 @@ namespace zoplannerservice.Serialization
             "yyyy-MM-dd"
         };
 
-        private const string OutputFormat = "yyyy-MM-dd HH:mm";
+        private const string OutputFormat = "yyyy-MM-ddTHH:mm:ss";
 
         public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
@@ -38,7 +35,6 @@ namespace zoplannerservice.Serialization
                 return result;
             }
 
-            // fallback to default parse (optional)
             if (DateTime.TryParse(dateString, out result))
                 return result;
 
@@ -51,7 +47,3 @@ namespace zoplannerservice.Serialization
         }
     }
 }
-
-
-
-
