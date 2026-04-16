@@ -1,3 +1,4 @@
+using zoplannerservice.DTO.Responses;
 using zoplannerservice.Models;
 
 namespace zoplannerservice.Services;
@@ -16,4 +17,6 @@ public interface IUserService : IBaseService<User>
     /// Get user by username
     /// </summary>
     Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default);
+
+    Task<ProfilePictureResponseDto> UploadProfilePictureAsync(long id,IFormFile file,CancellationToken ct = default);
 }

@@ -43,4 +43,7 @@ public interface ISpringApiClient
         string contentType,
         CancellationToken ct = default)
         where TResponse : class;
+
+
+    //Task<T?> PostMultipartAsync<T>(string url, MultipartFormDataContent content, CancellationToken ct);
 }

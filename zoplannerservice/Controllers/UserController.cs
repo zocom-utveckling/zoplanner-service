@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using zoplannerservice.Services;
-using zoplannerservice.Models;
-using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.WebEncoders.Testing;
+using System.ComponentModel.DataAnnotations;
+using zoplannerservice.DTO.Responses;
+using zoplannerservice.Models;
+using zoplannerservice.Services;
 
 namespace zoplannerservice.Controllers;
 
@@ -229,6 +230,29 @@ public class UserController : ControllerBase
             _logger.LogError(ex, "Service error for username {Username}", username);
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
+        }
+    }
+    [HttpPost("{id}/profile-picture")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ProfilePictureResponseDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UploadProfilePicture(
+    long id,
+    IFormFile file,
+    CancellationToken ct)
+    {
+        try
+        {
+            var result = await _userService.UploadProfilePictureAsync(id, file, ct);
+            return Ok(result);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading profile picture for user {Id}", id);
+            return StatusCode(500, new { message = "Upload failed", details = ex.Message });
         }
     }
 }
