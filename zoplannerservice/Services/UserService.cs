@@ -1,5 +1,6 @@
-using zoplannerservice.Models;
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.DTO.Responses;
+using zoplannerservice.Models;
 
 namespace zoplannerservice.Services;
 
@@ -111,6 +112,37 @@ public class UserService : BaseService<User>, IUserService
         {
             _logger.LogError(ex, "Error fetching {EntityName} by username {Username}", EntityName, username);
             throw new InvalidOperationException($"Failed to fetch {EntityName} by username from backend", ex);
+        }
+    }
+    public async Task<ProfilePictureResponseDto> UploadProfilePictureAsync(
+    long userId,
+    IFormFile file,
+    CancellationToken ct = default)
+    {
+        if (file == null || file.Length == 0)
+            throw new ValidationException("File is required");
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+
+            var response = await _springClient.PostMultipartAsync<ProfilePictureResponseDto>(
+                $"{ApiEndpoint}/{userId}/profile-picture",
+                stream,
+                file.FileName,
+                file.ContentType,
+                ct
+            );
+
+            if (response == null)
+                throw new InvalidOperationException("Failed to upload profile picture");
+
+            return response;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Spring Boot error while uploading profile picture");
+            throw new InvalidOperationException($"Upload failed: {ex.Message}", ex);
         }
     }
 }

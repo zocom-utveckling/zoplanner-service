@@ -12,7 +12,7 @@ namespace zoplannerservice.Models
         public UserRole Role { get; set; }
         public string City { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
-
+        public string? ProfilePicture { get; set; }
         public ConsultantStatus Availability { get; set; }
     }
 }
