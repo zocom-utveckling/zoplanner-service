@@ -2,17 +2,13 @@ using Amazon;
 using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using Amazon.SQS;
-using Amazon.SQS.Model;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Polly;
 using Polly.Extensions.Http;
-using System.Net.Http;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Serialization;
 using zoplannerservice.Models;
@@ -21,57 +17,71 @@ using zoplannerservice.Services;
 using zoplannerservice.Services.Interfaces;
 using zoplannerservice.Swagger;
 
+static void TryLoadEnvFile()
+{
+    var envFiles = new[]
+    {
+        Path.Combine(Directory.GetCurrentDirectory(), ".env.local"),
+        Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+        Path.Combine(AppContext.BaseDirectory, ".env.local"),
+        Path.Combine(AppContext.BaseDirectory, ".env"),
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env.local"),
+        Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".env"),
+    };
 
-DotNetEnv.Env.Load(".env.local");
+    foreach (var file in envFiles)
+    {
+        var fullPath = Path.GetFullPath(file);
+        if (File.Exists(fullPath))
+        {
+            Env.Load(fullPath);
+            Console.WriteLine($"Loaded env file: {fullPath}");
+            return;
+        }
+    }
+
+    Console.WriteLine("No .env file found. Using system environment variables only.");
+}
+
+TryLoadEnvFile();
+
 var builder = WebApplication.CreateBuilder(args);
 
+// JWT
+var jwtSecret = Environment.GetEnvironmentVariable("TOKENKEY")
+               ?? builder.Configuration["TOKENKEY"];
 
-// Auth Roles 
-// Alla kanske inte behövs / kan ändras.
+if (string.IsNullOrWhiteSpace(jwtSecret))
+{
+    throw new Exception("JWT Key saknas.");
+}
+
+var key = Encoding.UTF8.GetBytes(jwtSecret);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+// Authorization - match Java
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("Manager"));
-    options.AddPolicy("ConsultantOnly", policy => policy.RequireRole("Consultant"));
-    options.AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"));
-
-    options.AddPolicy("ManagerConsultat", policy => policy.RequireRole("BOTH"));
-
-    options.AddPolicy("StaffOnly", policy => policy.RequireRole("Admin", "Manager", "Consultant"));
-
-    // AllUsers = Ger tillgång till alla inloggade användare.
-    options.AddPolicy("AllUsers", policy =>
-        policy.RequireAuthenticatedUser());
+    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("MANAGER"));
+    options.AddPolicy("ConsultantOnly", policy => policy.RequireRole("CONSULTANT"));
+    options.AddPolicy("ManagerOrConsultant", policy => policy.RequireRole("MANAGER", "CONSULTANT", "BOTH"));
+    options.AddPolicy("AllUsers", policy => policy.RequireAuthenticatedUser());
 });
 
-//// JWT -------------------------
-//var jwtSecret = Environment.GetEnvironmentVariable("TOKENKEY");
-//// Console.WriteLine($"JWT Key: {jwtSecret}"); // För att kolla så jwt blir läst från .env.
-//if (string.IsNullOrEmpty(jwtSecret))
-//{
-//    throw new Exception("JWT Key saknas.");
-//}
-
-//var key = Encoding.UTF8.GetBytes(jwtSecret);
-
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//    .AddJwtBearer(options =>
-//    {
-//        options.TokenValidationParameters = new TokenValidationParameters
-//        {
-//            ValidateIssuer = false,
-//            ValidateAudience = false,
-//            ValidateLifetime = true,
-//            ValidateIssuerSigningKey = true,
-//            IssuerSigningKey = new SymmetricSecurityKey(key),
-//            ClockSkew = TimeSpan.Zero
-
-//        };
-//    });
-
-
-
-// Add services and configure JSON (DateOnly -> yyyy-MM-dd), Parse string to enum
+// Controllers + JSON
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
@@ -79,8 +89,8 @@ builder.Services.AddControllers().AddJsonOptions(o =>
     o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     o.JsonSerializerOptions.Converters.Add(new FormatTimeSpan());
     o.JsonSerializerOptions.Converters.Add(new FormatDateTime());
-
 });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -90,25 +100,52 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = ".NET API gateway applying business logic and calling Java CRUD Spring Boot"
     });
+
     c.OperationFilter<NotificationExamplesOperationFilter>();
+
+    var jwtSecurityScheme = new OpenApiSecurityScheme
+    {
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Description = "Skriv: Bearer {din token}",
+
+        Reference = new OpenApiReference
+        {
+            Id = "Bearer",
+            Type = ReferenceType.SecurityScheme
+        }
+    };
+
+    c.AddSecurityDefinition("Bearer", jwtSecurityScheme);
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            jwtSecurityScheme,
+            Array.Empty<string>()
+        }
+    });
 });
 
-// AWS SQS ---
-if (builder.Environment.IsDevelopment())
-{
-    Env.Load(".env.local");
-}
 
+
+// AWS SQS
 var accessKey = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID");
 var secretKey = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
 var regionName = Environment.GetEnvironmentVariable("AWS__Region")
+                 ?? Environment.GetEnvironmentVariable("AWS_REGION")
                  ?? builder.Configuration["AWS:Region"];
+
 var queueUrl = Environment.GetEnvironmentVariable("AWS__QueueUrl")
+               ?? Environment.GetEnvironmentVariable("SQS_QUEUE_URL")
                ?? builder.Configuration["AWS:QueueUrl"];
 
 if (string.IsNullOrEmpty(queueUrl))
 {
-    throw new InvalidOperationException("AWS QueueUrl is not configured. Check your .env.local or appsettings.json.");
+    throw new InvalidOperationException("AWS QueueUrl is not configured. Check your .env or appsettings.json.");
 }
 
 var awsOptions = new AWSOptions
@@ -118,33 +155,33 @@ var awsOptions = new AWSOptions
 };
 
 var sqsClient = new AmazonSQSClient(awsOptions.Credentials, awsOptions.Region);
-
 builder.Services.AddSingleton<NotificationService>(new NotificationService(sqsClient, queueUrl));
 
-// -----------------------------------------------------
-
-// Quick debug: peek config value
 Console.WriteLine($"Config peek SpringApi:BaseUrl = {builder.Configuration["SpringApi:BaseUrl"]}");
 
-// Configure Spring API options (single registration)
 builder.Services.Configure<SpringApiOptions>(builder.Configuration.GetSection("SpringApi"));
 
-// Add HttpClient for Spring API with retry and circuit breaker (single registration)
 builder.Services.AddHttpClient<ISpringApiClient, SpringApiClient>((serviceProvider, client) =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<SpringApiOptions>>().Value;
-    Console.WriteLine($"Debug: SpringApi:BaseUrl = {options.BaseUrl}"); // temp log
+
     if (string.IsNullOrWhiteSpace(options.BaseUrl))
     {
         throw new InvalidOperationException("SpringApi:BaseUrl is not configured in appsettings.json");
     }
+
     var normalized = options.BaseUrl.EndsWith("/") ? options.BaseUrl : options.BaseUrl + "/";
     client.BaseAddress = new Uri(normalized);
     client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 })
-.AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryAsync(3, retryAttempt =>
-    TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
-.AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(200)));
+.AddTransientHttpErrorPolicy(policy => policy.WaitAndRetryAsync(
+    3,
+    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))
+))
+.AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(
+    5,
+    TimeSpan.FromSeconds(200)
+));
 
 // Register services
 builder.Services.AddScoped<ICustomerService, CustomerService>();
@@ -172,12 +209,9 @@ builder.Services.AddScoped<IManagerService, ManagerService>();
 builder.Services.AddScoped<IBaseService<Manager>, ManagerService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
-
 builder.Services.AddScoped<IActivityService, ActivityService>();
-
 builder.Services.AddScoped<IFileService, FileService>();
 
-// Add CORS (allow React and Java to connect)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -188,10 +222,8 @@ builder.Services.AddCors(options =>
     });
 });
 
-
 var app = builder.Build();
 
-// Swagger for testing
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -199,13 +231,9 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-
 app.Run();
-
-

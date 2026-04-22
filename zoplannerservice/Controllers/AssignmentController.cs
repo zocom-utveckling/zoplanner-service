@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Services;
 using zoplannerservice.Models;
@@ -12,24 +13,24 @@ namespace zoplannerservice.Controllers;
 
 //TODO: Implement endpoint that retrieves active assignments between week x to y
 
-
 [ApiController]
-//[Route("api/Assignments")]
 [Route("api/[controller]")]
-
+[Authorize(Policy = "AllUsers")]
 public class AssignmentController : ControllerBase
 {
     private readonly IAssignmentService _assignmentService;
     private readonly ISpringApiClient _springClient;
     private readonly ILogger<AssignmentController> _logger;
 
-    public AssignmentController(IAssignmentService assignmentService, ISpringApiClient springClient, ILogger<AssignmentController> logger)
+    public AssignmentController(
+        IAssignmentService assignmentService,
+        ISpringApiClient springClient,
+        ILogger<AssignmentController> logger)
     {
         _assignmentService = assignmentService;
         _springClient = springClient;
         _logger = logger;
     }
-
 
     /// <summary>
     /// Get all assignments
@@ -41,9 +42,9 @@ public class AssignmentController : ControllerBase
     {
         try
         {
-        var assignments = await _assignmentService.GetAllSync(ct);
-        return Ok(assignments);
-       }
+            var assignments = await _assignmentService.GetAllSync(ct);
+            return Ok(assignments);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error while fetching all assignments");
@@ -86,47 +87,14 @@ public class AssignmentController : ControllerBase
         }
     }
 
-
-    /// <summary>
-    /// Get sessions for a specific assignment
-    /// GET /api/assignment/{id}/sessions
-    /// </summary>
-    //[HttpGet("{id}/sessions")]
-    //[ProducesResponseType(typeof(IEnumerable<Session>), StatusCodes.Status200OK)]
-    //[ProducesResponseType(StatusCodes.Status404NotFound)]
-    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-    //public async Task<ActionResult<IEnumerable<Session>>> GetSessionsByAssignmentId(long id, CancellationToken ct)
-    //{
-    //    try
-    //    {
-    //        var assignment = await _assignmentService.GetByIdAsync((int)id, ct);
-            
-    //        var sessions = await _springClient.GetAsync<IEnumerable<Session>>($"assignments/{id}/sessions", ct);
-    //        return Ok(sessions ?? Enumerable.Empty<Session>());
-    //    }
-    //    catch (ValidationException ex)
-    //    {
-    //        _logger.LogWarning(ex, "Validation error for assignment {Id}", id);
-    //        return BadRequest(new { message = ex.Message });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogWarning(ex, "Error getting sessions for assignment {Id}", id);
-    //        return StatusCode(StatusCodes.Status500InternalServerError,
-    //            new { message = "Error getting sessions for assignment", details = ex.Message });
-    //    }
-    //}
-
     [HttpGet("consultant/{consultantId}")]
     [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<Assignment>>> GetByConsultantId(
-    long consultantId,
-    [FromQuery] bool? published,
-    CancellationToken ct)
+        long consultantId,
+        [FromQuery] bool? published,
+        CancellationToken ct)
     {
         try
         {
@@ -149,48 +117,35 @@ public class AssignmentController : ControllerBase
     }
 
     [HttpGet("visibility")]
+    [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<Assignment>>> GetByVisibility(
-    [FromQuery] bool published,
-    CancellationToken ct)
+        [FromQuery] bool published,
+        CancellationToken ct)
     {
-        var assignments = await _assignmentService
-            .GetAssignmentsByVisibilityAsync(published, ct);
-
-        return Ok(assignments);
+        try
+        {
+            var assignments = await _assignmentService.GetAssignmentsByVisibilityAsync(published, ct);
+            return Ok(assignments);
+        }
+        catch (ValidationException ex)
+        {
+            _logger.LogWarning(ex, "Validation error while getting assignments by visibility");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Service error while getting assignments by visibility");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Error getting assignments by visibility", details = ex.Message });
+        }
     }
-
-    /// <summary>
-    /// Get assignments by Consultant ID
-    /// </summary>
-
-    //[HttpGet("consultant/{consultantId}")]
-    //[ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
-    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    //public async Task<ActionResult<IEnumerable<Assignment>>> GetByConsultantId(long consultantId, CancellationToken ct)
-    //{
-    //    try
-    //    {
-    //        var assignments = await _assignmentService.GetByConsultantIdAsync(consultantId, ct);
-    //        return Ok(assignments);
-    //    }
-    //    catch (ValidationException ex)
-    //    {
-    //        _logger.LogWarning(ex, "Validation error for consultant {ConsultantId}", consultantId);
-    //        return BadRequest(new { message = ex.Message });
-    //    }
-    //    catch (InvalidOperationException ex)
-    //    {
-    //        _logger.LogError(ex, "Service error for consultant {ConsultantId}", consultantId);
-    //        return StatusCode(StatusCodes.Status500InternalServerError,
-    //            new { message = "Error getting assignments by consultant", details = ex.Message });
-    //    }
-    //}
 
     /// <summary>
     /// Create a new assignment
     /// </summary>
-
+    [Authorize(Policy = "ManagerOnly")]
     [HttpPost]
     [ProducesResponseType(typeof(Assignment), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -200,7 +155,7 @@ public class AssignmentController : ControllerBase
         try
         {
             var createdAssignment = await _assignmentService.CreateAsync(request, ct);
-            return CreatedAtAction(nameof(GetById), new { id = createdAssignment.Id}, createdAssignment);
+            return CreatedAtAction(nameof(GetById), new { id = createdAssignment.Id }, createdAssignment);
         }
         catch (ValidationException ex)
         {
@@ -218,10 +173,11 @@ public class AssignmentController : ControllerBase
     /// <summary>
     /// Update an existing assignment
     /// </summary>
-
+    [Authorize(Policy = "ManagerOnly")]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(Assignment), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Update(long id, [FromBody] UpdateAssignmentRequest request, CancellationToken ct)
     {
@@ -244,6 +200,7 @@ public class AssignmentController : ControllerBase
             {
                 return NotFound(new { message = $"Assignment with ID {id} not found in database" });
             }
+
             return Ok(updated);
         }
         catch (ValidationException ex)
@@ -259,40 +216,10 @@ public class AssignmentController : ControllerBase
         }
     }
 
-
-    //Patch has not been implemented in Java API for assignments
-    //[HttpPatch("{id}")]
-    //[ProducesResponseType(typeof(Assignment), StatusCodes.Status200OK)]
-    //[ProducesResponseType(StatusCodes.Status400BadRequest)]
-    //[ProducesResponseType(StatusCodes.Status404NotFound)]
-    //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    //public async Task<ActionResult<Assignment>> Patch(long id, [FromBody] PatchAssignmentRequest request, CancellationToken ct)
-    //{
-    //    try
-    //    {
-    //        var updated = await _assignmentService.PatchAsync(id, request, ct);
-    //        if (updated == null)
-    //        {
-    //            return NotFound(new { message = $"Assignment with ID {id} not found" });
-    //        }
-    //        return Ok(updated);
-    //    }
-       
-    //   catch (ValidationException ex)
-    //    {
-    //        return BadRequest(new { message = ex.Message });
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(ex, "Error patching assignment {Id}", id);
-    //        return StatusCode(500, new { message = "Error patching assignment", details = ex.Message });
-    //    }
-    //}
-
-
     /// <summary>
     /// Delete assignment by ID
     /// </summary>
+    [Authorize(Policy = "ManagerOnly")]
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -303,7 +230,7 @@ public class AssignmentController : ControllerBase
         try
         {
             var deleted = await _assignmentService.DeleteAsync(id, ct);
-            
+
             if (!deleted)
             {
                 return NotFound(new { message = $"Assignment with ID {id} not found in database" });
@@ -319,9 +246,8 @@ public class AssignmentController : ControllerBase
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Service error while deleting assignment {Id}", id);
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, 
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 new { message = "Backend service error", details = ex.Message });
         }
     }
-
 }
