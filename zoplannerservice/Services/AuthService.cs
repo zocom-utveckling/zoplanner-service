@@ -5,22 +5,22 @@ using Ganss.Xss;
 using Microsoft.IdentityModel.Tokens;
 using zoplannerservice.Models;
 using zoplannerservice.Models.View;
+using zoplannerservice.Services.Interfaces;
 
 namespace zoplannerservice.Services;
 
 public class AuthService : IAuthService
 {
-
     private readonly IUserService _userService;
-
     private readonly string _jwtSecret;
 
     public AuthService(IUserService userService)
     {
         _userService = userService;
         _jwtSecret = Environment.GetEnvironmentVariable("TOKENKEY")
-        ?? throw new Exception("JWT Key saknas.");
+            ?? throw new Exception("JWT Key saknas.");
     }
+
     public async Task<(bool Success, string? Token, User? User)> LoginAsync(LoginViewModel model, CancellationToken ct)
     {
         var user = await _userService.GetByUsernameAsync(model.Username, ct);
@@ -39,7 +39,6 @@ public class AuthService : IAuthService
         try
         {
             var sanitizer = new HtmlSanitizer();
-
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
 
             var createRequest = new CreateUserRequest
@@ -52,9 +51,7 @@ public class AuthService : IAuthService
                 Role = model.Role,
             };
 
-
             var user = await _userService.CreateAsync(createRequest, ct);
-
             return user != null;
         }
         catch (Exception ex)
@@ -64,16 +61,15 @@ public class AuthService : IAuthService
         }
     }
 
-    /* JWT Logik */
     private string CreateToken(User user)
     {
         var claims = new List<Claim>
-        {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(ClaimTypes.Name, user.Username),
-            new(ClaimTypes.Role, user.Role.ToString()),
-
-        };
+    {
+        new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+        new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new(ClaimTypes.Name, user.Username),
+        new(ClaimTypes.Role, user.Role.ToString()),
+    };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
