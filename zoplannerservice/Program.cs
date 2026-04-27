@@ -75,10 +75,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Authorization - match Java
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("ManagerOnly", policy => policy.RequireRole("MANAGER"));
-    options.AddPolicy("ConsultantOnly", policy => policy.RequireRole("CONSULTANT"));
-    options.AddPolicy("ManagerOrConsultant", policy => policy.RequireRole("MANAGER", "CONSULTANT", "BOTH"));
-    options.AddPolicy("AllUsers", policy => policy.RequireAuthenticatedUser());
+    options.AddPolicy("ManagerOnly", policy =>
+        policy.RequireRole("MANAGER"));
+
+    options.AddPolicy("ConsultantOnly", policy =>
+        policy.RequireRole("CONSULTANT"));
+
+    options.AddPolicy("ManagerOrConsultant", policy =>
+        policy.RequireRole("MANAGER", "CONSULTANT"));
+
+    options.AddPolicy("AllUsers", policy =>
+        policy.RequireAuthenticatedUser());
 });
 
 // Controllers + JSON

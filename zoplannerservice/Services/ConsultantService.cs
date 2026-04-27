@@ -286,6 +286,13 @@ public class ConsultantService : BaseService<Consultant>, IConsultantService
         return rows;
     }
 
+    public async Task<Consultant?> GetByUserIdAsync(long userId, CancellationToken ct = default)
+    {
+        var consultants = await GetAllSync(ct);
+
+        return consultants.FirstOrDefault(c => c.UserId == userId);
+    }
+
 
 }
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Services;
 using zoplannerservice.Models;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace zoplannerservice.Controllers;
 
@@ -25,6 +26,8 @@ namespace zoplannerservice.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = "ManagerOnly")]
+
 public class ManagerController : ControllerBase
 {
     private readonly IManagerService _managerService;
