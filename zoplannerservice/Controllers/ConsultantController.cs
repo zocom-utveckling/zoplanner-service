@@ -3,6 +3,9 @@ using System.ComponentModel.DataAnnotations;
 using zoplannerservice.DTO.Responses;
 using zoplannerservice.Models;
 using zoplannerservice.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 
 namespace zoplannerservice.Controllers;
@@ -15,6 +18,7 @@ namespace zoplannerservice.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Policy = "AllUsers")]
 public class ConsultantController : ControllerBase
 {
     private readonly IConsultantService _consultantService;
@@ -30,6 +34,7 @@ public class ConsultantController : ControllerBase
     /// Get all consultants
     /// </summary>
     [HttpGet]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<Consultant>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -47,10 +52,63 @@ public class ConsultantController : ControllerBase
         }
     }
 
+
+    [Authorize(Policy = "AllUsers")]
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(Consultant), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMe(CancellationToken ct)
+    {
+        try
+        {
+            var userIdClaim =
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userIdClaim == null)
+            {
+                return Unauthorized();
+            }
+
+            var userId = long.Parse(userIdClaim);
+
+            var consultant = await _consultantService
+                .GetByUserIdAsync(userId, ct);
+
+            if (consultant == null)
+            {
+                return NotFound(new
+                {
+                    message = "Consultant profile not found"
+                });
+            }
+
+            var response = new ConsultantMeResponse
+            {
+                Id = consultant.Id,
+                City = consultant.City
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting consultant profile");
+
+            return StatusCode(
+                500,
+                new
+                {
+                    message = "Error retrieving profile",
+                    details = ex.Message
+                });
+        }
+    }
+
     /// <summary>
     /// Get consultant by ID
     /// </summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Consultant), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -92,6 +150,7 @@ public class ConsultantController : ControllerBase
     /// Get consultant overview: active courses + upcoming sessions (default 30 days)
     /// </summary>
     [HttpGet("{id}/overview")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(ConsultantOverviewResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -138,6 +197,7 @@ public class ConsultantController : ControllerBase
     /// Note: Spring Boot checks if consultantname exists, but this requires custom service method
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Consultant), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -173,6 +233,7 @@ public class ConsultantController : ControllerBase
     /// Update consultant by ID
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(Consultant), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -207,6 +268,7 @@ public class ConsultantController : ControllerBase
     /// Delete consultant by ID
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -280,6 +342,7 @@ public class ConsultantController : ControllerBase
 
 
     [HttpGet("search-schedule")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(List<ScheduleSearchRowDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]

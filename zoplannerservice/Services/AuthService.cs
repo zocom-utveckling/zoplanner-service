@@ -21,16 +21,35 @@ public class AuthService : IAuthService
             ?? throw new Exception("JWT Key saknas.");
     }
 
-    public async Task<(bool Success, string? Token, User? User)> LoginAsync(LoginViewModel model, CancellationToken ct)
+    public async Task<(bool Success, string? Token, User? User)> LoginAsync(
+    LoginViewModel model,
+    CancellationToken ct)
     {
         var user = await _userService.GetByUsernameAsync(model.Username, ct);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
+        if (user == null)
         {
             return (false, null, null);
         }
 
-        var token = CreateToken(user);
+        bool passwordIsValid;
+
+        try
+        {
+            passwordIsValid = BCrypt.Net.BCrypt.Verify(model.Password, user.Password);
+        }
+        catch (BCrypt.Net.SaltParseException)
+        {
+            return (false, null, null);
+        }
+
+        if (!passwordIsValid)
+        {
+            return (false, null, null);
+        }
+
+        var token = GenerateJwtToken(user);
+
         return (true, token, user);
     }
 
@@ -61,15 +80,15 @@ public class AuthService : IAuthService
         }
     }
 
-    private string CreateToken(User user)
+    private string GenerateJwtToken(User user)
     {
         var claims = new List<Claim>
-    {
-        new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-        new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-        new(ClaimTypes.Name, user.Username),
-        new(ClaimTypes.Role, user.Role.ToString()),
-    };
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Name, user.Username),
+            new(ClaimTypes.Role, user.Role.ToString()),
+        };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);

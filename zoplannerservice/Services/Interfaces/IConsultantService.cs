@@ -33,5 +33,7 @@ public interface IConsultantService : IBaseService<Consultant>
     DateTime? to = null
 );
 
+    Task<Consultant?> GetByUserIdAsync(long userId, CancellationToken ct = default);
+
 }
 

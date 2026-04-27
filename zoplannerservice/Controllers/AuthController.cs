@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Models.View;
+using Microsoft.AspNetCore.Authorization;
 
 namespace zoplannerservice.Controllers;
 
@@ -26,7 +27,8 @@ public class AuthController : ControllerBase
     }
 
 
-    // [Authorize(Policy ="Admin")] För framtiden när auktorisering behövs.
+    // [Authorize(Policy ="ManagerOnly")] Now only managers can register new users.
+    [Authorize(Policy = "ManagerOnly")]
     [HttpPost("register")]
     public async Task<IActionResult> RegisterUser(RegisterViewModel model, CancellationToken ct)
     {

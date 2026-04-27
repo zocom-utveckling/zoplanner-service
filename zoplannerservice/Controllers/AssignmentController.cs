@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using zoplannerservice.Services;
 using zoplannerservice.Models;
+using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using zoplannerservice.Services;
 
 namespace zoplannerservice.Controllers;
 
@@ -21,13 +23,16 @@ public class AssignmentController : ControllerBase
     private readonly IAssignmentService _assignmentService;
     private readonly ISpringApiClient _springClient;
     private readonly ILogger<AssignmentController> _logger;
+    private readonly IConsultantService _consultantService;
 
     public AssignmentController(
-        IAssignmentService assignmentService,
-        ISpringApiClient springClient,
-        ILogger<AssignmentController> logger)
+    IAssignmentService assignmentService,
+    IConsultantService consultantService,
+    ISpringApiClient springClient,
+    ILogger<AssignmentController> logger)
     {
         _assignmentService = assignmentService;
+        _consultantService = consultantService;
         _springClient = springClient;
         _logger = logger;
     }
@@ -37,19 +42,49 @@ public class AssignmentController : ControllerBase
     /// GET /api/Assignment
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<Assignment>>> GetAll(CancellationToken ct)
     {
         try
         {
-            var assignments = await _assignmentService.GetAllSync(ct);
+            if (User.IsInRole("MANAGER"))
+            {
+                var allAssignments = await _assignmentService.GetAllSync(ct);
+                return Ok(allAssignments);
+            }
+
+            var userId = long.Parse(
+                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
+            );
+
+            var consultant = await _consultantService
+                .GetByUserIdAsync(userId, ct);
+
+            if (consultant == null)
+            {
+                return Ok(Enumerable.Empty<Assignment>());
+            }
+
+            var assignments = await _assignmentService
+                .GetAssignmentsByConsultantAsync(
+                    consultant.Id,
+                    null,
+                    ct
+                );
+
             return Ok(assignments);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error while fetching all assignments");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Unexpected error occurred", details = ex.Message });
+            _logger.LogError(ex,
+                "Unexpected error while fetching assignments");
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new
+                {
+                    message = "Unexpected error occurred",
+                    details = ex.Message
+                });
         }
     }
 
@@ -60,6 +95,7 @@ public class AssignmentController : ControllerBase
     [ProducesResponseType(typeof(Assignment), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetById(long id, CancellationToken ct)
     {
@@ -70,6 +106,28 @@ public class AssignmentController : ControllerBase
             if (assignment == null)
             {
                 return NotFound(new { message = $"Assignment with ID {id} not found in database" });
+            }
+
+            if (User.IsInRole("MANAGER"))
+            {
+                return Ok(assignment);
+            }
+
+            var userId = long.Parse(
+                User.FindFirst(ClaimTypes.NameIdentifier)!.Value
+            );
+
+            var consultant = await _consultantService
+                .GetByUserIdAsync(userId, ct);
+
+            if (consultant == null)
+            {
+                return Forbid();
+            }
+
+            if (assignment.ConsultantId != consultant.Id)
+            {
+                return Forbid();
             }
 
             return Ok(assignment);
@@ -86,15 +144,15 @@ public class AssignmentController : ControllerBase
                 new { message = "Error getting assignment", details = ex.Message });
         }
     }
-
+    [Authorize(Policy = "ManagerOnly")]
     [HttpGet("consultant/{consultantId}")]
     [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<Assignment>>> GetByConsultantId(
-        long consultantId,
-        [FromQuery] bool? published,
-        CancellationToken ct)
+    long consultantId,
+    [FromQuery] bool? published,
+    CancellationToken ct)
     {
         try
         {
@@ -105,18 +163,30 @@ public class AssignmentController : ControllerBase
         }
         catch (ValidationException ex)
         {
-            _logger.LogWarning(ex, "Validation error for consultant {ConsultantId}", consultantId);
+            _logger.LogWarning(ex,
+                "Validation error for consultant {ConsultantId}",
+                consultantId);
+
             return BadRequest(new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Service error for consultant {ConsultantId}", consultantId);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Error getting assignments by consultant", details = ex.Message });
+            _logger.LogError(ex,
+                "Service error for consultant {ConsultantId}",
+                consultantId);
+
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new
+                {
+                    message = "Error getting assignments by consultant",
+                    details = ex.Message
+                });
         }
     }
 
     [HttpGet("visibility")]
+    [Authorize(Policy = "ManagerOnly")]
     [ProducesResponseType(typeof(IEnumerable<Assignment>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
